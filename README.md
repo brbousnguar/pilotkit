@@ -1,9 +1,10 @@
 <div align="center">
-  <img src="site/pilotkit.svg" width="72" alt="pilotkit" />
+  <img src="https://raw.githubusercontent.com/brbousnguar/pilotkit/main/site/pilotkit.svg" width="72" alt="pilotkit" />
   <h1>pilotkit</h1>
   <p><strong>Your GitHub Copilot seat, connected to Jira and Confluence in one command.</strong><br/>A read-only Atlassian MCP server, registered with the Copilot CLI and VS Code, plus a local chat desk that shows the AI credits of every answer.</p>
 
   <p>
+    <a href="https://www.npmjs.com/package/pilotkit"><img src="https://img.shields.io/npm/v/pilotkit?style=flat-square&color=cb3837&logo=npm&logoColor=white" alt="pilotkit on npm" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="Apache-2.0 licensed" /></a>
     <img src="https://img.shields.io/badge/Node.js-22.13%2B-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 22.13+" />
     <img src="https://img.shields.io/badge/Copilot%20SDK-1.0-24292f?style=flat-square&logo=githubcopilot&logoColor=white" alt="GitHub Copilot SDK" />
@@ -12,7 +13,14 @@
   </p>
 
   <p>
-    <a href="#setup"><strong>Setup</strong></a> ·
+    <a href="https://heybrahim.com/notes/pilotkit-copilot-jira-confluence.html"><strong>How it works</strong></a> ·
+    <a href="https://heybrahim.com/projects/pilotkit.html">Project page</a> ·
+    <a href="https://www.npmjs.com/package/pilotkit">npm</a> ·
+    <a href="https://github.com/brbousnguar/pilotkit/releases">Releases</a>
+  </p>
+
+  <p>
+    <a href="#setup">Setup</a> ·
     <a href="#the-desk">The desk</a> ·
     <a href="#tools">Tools</a> ·
     <a href="#brand-packs">Brand packs</a> ·
