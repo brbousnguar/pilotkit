@@ -47,12 +47,12 @@ Questions that work well: *"What are my open Jira issues, by priority?"*, *"Summ
 
 ## Setup
 
-pilotkit is not on npm yet. Install it from GitHub:
-
 ```bash
-npm install -g github:brbousnguar/pilotkit
+npm install -g pilotkit
 pilotkit setup
 ```
+
+Recent npm versions warn that they skipped the install script of `koffi`, a dependency of the Copilot SDK. pilotkit does not use it: the warning is harmless.
 
 Setup asks for what it needs and checks each answer:
 
@@ -221,6 +221,7 @@ Checked on 2026-10-12 on macOS with Node 24, Copilot CLI 1.0.91 and a real Jira 
 | VS Code registration | Covered by tests on a JSONC `mcp.json` with other servers |
 | Windows (DPAPI token, `.cmd` shims) | **Not yet verified on a Windows PC** |
 | Linux (Secret Service) | **Not yet verified** |
+| npm package | `npm pack` tarball installed globally into a scratch prefix: `--version`, `--help`, and the desk reaching Copilot, without koffi's install script |
 
 ## Notes
 
