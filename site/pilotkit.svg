@@ -1,13 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="pilotkit">
-  <clipPath id="tile"><rect width="64" height="64" rx="16"/></clipPath>
-  <g clip-path="url(#tile)">
-    <rect width="64" height="64" fill="#b8532e"/>
-    <rect x="-5" y="-5" width="64" height="64" rx="16" fill="#d2643c"/>
+  <clipPath id="tile"><rect x="4" y="4" width="56" height="56" rx="14"/></clipPath>
+  <g transform="rotate(-8 32 32)">
+    <g clip-path="url(#tile)">
+      <rect x="4" y="4" width="56" height="56" fill="#b8532e"/>
+      <rect x="-1" y="-1" width="56" height="56" rx="14" fill="#d2643c"/>
+    </g>
   </g>
-  <g transform="translate(-2.5 -1.5)">
-    <path d="M12 31 50 14 40 49Z" fill="#f2c14e" transform="translate(3 4)"/>
-    <path d="M12 31 50 14 29 35Z" fill="#fffdf8"/>
-    <path d="M29 35 50 14 40 49Z" fill="#efe6d6"/>
-    <path d="M29 35 31 46 35.5 40.5Z" fill="#e3d7c2"/>
-  </g>
+  <circle cx="44" cy="20" r="7" fill="#f2c14e"/>
+  <path d="M10 34 47 19 37 51Z" fill="#1f2a44" opacity=".22" transform="translate(2.5 3)"/>
+  <path d="M10 34 47 19 27 38Z" fill="#fffdf8"/>
+  <path d="M27 38 47 19 37 51Z" fill="#efe6d6"/>
+  <path d="M27 38 29 48 33 43Z" fill="#e3d7c2"/>
 </svg>
