@@ -9,7 +9,7 @@ import { PKG_DIR, paths } from './config.mjs';
 export const DEFAULT_BRAND = {
   name: 'pilotkit',
   product: 'pilotkit desk',
-  accent: '#2f5bd3',
+  accent: '#a4471f',
   welcome: 'Ask about your Jira tickets and Confluence pages. Every answer shows the AI credits it cost.',
   atlassianSite: null,
   links: [],

@@ -25,9 +25,11 @@ for anything that writes, so a test never touches a real setup.
 - `src/secrets.mjs`: the Atlassian token in the macOS Keychain, a DPAPI file on Windows, or the
   Secret Service on Linux. `PILOTKIT_ATLASSIAN_TOKEN` overrides.
 - `src/desk/`: `server.mjs` (HTTP + SSE on 127.0.0.1), `runner.mjs` (one Copilot SDK session per
-  chat, usage events to credits), `db.mjs` (SQLite schema, credit report), `policy.mjs`.
+  chat, usage events to credits), `db.mjs` (SQLite schema, credit report for `pilotkit credits`),
+  `month.mjs` (quota readings every 10 minutes and the Credits page's month report), `policy.mjs`.
 - `site/`: the desk pages, plain JS modules (`common.js`, `app.js`, `credits.js`, `start.js`,
-  `md.js`). No framework and no bundler; the CSP forbids inline scripts.
+  `md.js`). No framework and no bundler; the CSP forbids inline scripts. Atlas look, light only:
+  tokens at the top of `app.css`, fonts self-hosted in `site/fonts/` (OFL, see `LICENSES.txt`).
 
 ## Invariants
 

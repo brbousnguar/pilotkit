@@ -99,8 +99,8 @@ Once set up, the same tools work in four places:
 
 `pilotkit start` serves a small web app on `http://127.0.0.1:8717/` with three pages:
 
-- **Chat.** One Copilot session per chat, resumed for follow-ups. Answers stream in, rendered as Markdown with links to every issue and page. Under each answer, a line gives its credits, model calls, tool calls and time; it opens on a table of each model call (model, input tokens, tokens served from cache, output tokens, credits, time, tools it asked for) and each tool call (arguments, characters returned, time, result).
-- **Credits.** Today, the last 7, 30 or 90 days, this month, and the Copilot monthly allowance; a bar per day; credits by model; the most expensive chats; and four plain tips to spend less.
+- **Chat.** One Copilot session per chat, resumed for follow-ups, with the list of chats on the left (a drawer on phones). While Copilot works, a line says what it is doing ("Searching Jira", "Reading a Confluence page"); the answer streams in as Markdown with links to every issue and page. Above each answer, a line gives its model calls, tool calls and credits; it opens on a timeline, in order, of each model call (model, input tokens, tokens served from cache, output tokens, time, credits) and each tool call (its argument, roughly how many tokens it returned, time). The model and the credit cap for new chats are in the settings menu.
+- **Credits.** The Copilot month: credits used against the monthly allowance, the pace against an even plan, today against the daily plan, credits left per day, and where the month ends at this rate. A bar per day splits this desk from the rest of the account's Copilot use, a line follows the month against the plan, and a habits section breaks the desk's own credits down by model, by chat and by prompt cache, with a few plain tips to spend less.
 - **Start here.** The state of this PC (Copilot account, Atlassian site) and how to use the tools in each client.
 
 ### How credits are counted
@@ -109,7 +109,7 @@ Copilot sends an `assistant.usage` event after every model call. Its `copilotUsa
 
 Each chat has a credit cap (default 60, Copilot's minimum is 30), passed to Copilot as `sessionLimits.maxAiCredits`: Copilot stops the session when it is reached. The desk's own system message asks the model to batch tool calls, ask for few results and stop as soon as it can answer, because every call re-sends the whole conversation.
 
-The allowance tile comes from `account.getQuota`. It counts every Copilot client on the account, and GitHub can take a while to update it.
+The allowance comes from `account.getQuota`. It counts every Copilot client on the account, and GitHub can take a while to update it. While it runs, the desk reads it every 10 minutes and keeps the readings, so it can split the month into days: the use before its first reading of the month is shown on that day, marked as such. Without a reading (not signed in, or an unlimited plan) the page shows this desk's own credits only.
 
 ## Tools
 
@@ -191,8 +191,8 @@ src/
   brand.mjs             brand pack validation, install, load
   atlassian/            REST client, ADF and storage-format to text, the seven tools, the MCP server
   cli/                  setup, doctor and unlink, credits, terminal prompts
-  desk/                 HTTP server, Copilot session runner, SQLite schema, tool policy
-site/                   the desk: chat, credits and start pages, Markdown renderer, default logo
+  desk/                 HTTP server, Copilot session runner, SQLite schema, month report, tool policy
+site/                   the desk: chat, credits and start pages, Markdown renderer, default logo, fonts
 examples/brand-acme/    a fictional brand pack
 test/                   node:test suites
 changelog/unreleased/   one changelog fragment per PR, collated into CHANGELOG.md
@@ -214,7 +214,7 @@ Checked on 2026-10-12 on macOS with Node 24, Copilot CLI 1.0.91 and a real Jira 
 | Part | Status |
 |---|---|
 | All seven MCP tools | Verified live, including the `404` hint |
-| Desk: new chat, streaming, follow-up in the same session, credits per call | Verified live in Chromium (desktop, 390 px and 320 px, light and dark) |
+| Desk: new chat, streaming, follow-up in the same session, credits per call | Verified live in Chromium (desktop, 390 px and 320 px) |
 | Credits page, brand pack, Host and header guards, path traversal | Verified live |
 | macOS Keychain token | Verified |
 | Copilot CLI registration | Verified with Copilot CLI 1.0.91 in a scratch `COPILOT_HOME` (add, replace, remove) |
