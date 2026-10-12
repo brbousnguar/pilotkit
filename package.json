@@ -1,0 +1,52 @@
+{
+  "name": "pilotkit",
+  "version": "0.1.0",
+  "description": "One command to set up GitHub Copilot with Jira and Confluence on a colleague's PC, plus a local desk that shows the AI credits every question costs.",
+  "type": "module",
+  "bin": {
+    "pilotkit": "bin/pilotkit.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "site",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node bin/pilotkit.mjs start",
+    "mcp": "node bin/pilotkit.mjs mcp",
+    "test": "node --test --test-reporter=spec \"test/*.test.mjs\""
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^1.0.19",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.6"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "github-copilot",
+    "copilot-sdk",
+    "jira",
+    "confluence",
+    "atlassian",
+    "ai-credits",
+    "onboarding",
+    "cli"
+  ],
+  "author": "Brahim Bousnguar (https://heybrahim.com/)",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/brbousnguar/pilotkit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brbousnguar/pilotkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brbousnguar/pilotkit/issues"
+  }
+}

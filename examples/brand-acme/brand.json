@@ -1,0 +1,12 @@
+{
+  "name": "Acme",
+  "product": "Acme Copilot desk",
+  "logo": "logo.svg",
+  "accent": "#c2410c",
+  "welcome": "Ask about your Acme Jira tickets and Confluence pages. Every answer shows the AI credits it cost.",
+  "atlassianSite": "https://acme.atlassian.net",
+  "links": [
+    { "label": "Copilot rules at Acme", "url": "https://example.com/copilot-rules" },
+    { "label": "Ask for help", "url": "https://example.com/help" }
+  ]
+}
