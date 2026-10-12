@@ -6,10 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.1.1] - 2026-10-12
+## [0.2.0] - 2026-10-12
+
+### Added
+- The desk reads the account's monthly Copilot use every 10 minutes while it runs, so the Credits page can split the month into days (#7)
 
 ### Changed
+- The desk has a new look: warm paper and cut-paper colours, Fraunces and Inter served from the package (no font CDN), the chats in a sidebar (a drawer on phones), settings in a menu, a live line saying what Copilot is doing, and each answer's model and tool calls on a timeline above it. It is light only (#7)
+- The Credits page follows the Copilot month: used against the allowance, pace, today against the daily plan, credits left per day and where the month ends at this rate, with a chart per day, a chart for the month and the desk's habits by model, chat and prompt cache (#7)
+- A new logo: a paper plane on a tilted clay tile with a butter sun (#9)
+- The default brand accent is `#a4471f` (#7)
 - README header: an npm version badge, the logo by absolute URL so it shows on npm and anywhere else the README is rendered, and links to the write-up, the project page, npm and the releases (#5)
+
+### Removed
+- The desk's `/api/quota` and `/api/credits` endpoints, replaced by `/api/month`; the `pilotkit credits` terminal report is unchanged (#7)
+- The desk's dark theme (#7)
 
 ## [0.1.0] - 2026-10-12
 
@@ -19,6 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `pilotkit start`: a local desk on 127.0.0.1 that chats through the Copilot SDK and records the AI credits of every model call, per answer, per day, per model and per chat (#1)
 - `pilotkit credits` and `pilotkit brand`: a terminal credit report, and brand packs that apply a company's name, logo and accent colour from a folder outside this repo (#1)
 
-[Unreleased]: https://github.com/brbousnguar/pilotkit/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/brbousnguar/pilotkit/compare/v0.1.0...v0.1.1
+[Unreleased]: https://github.com/brbousnguar/pilotkit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/brbousnguar/pilotkit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/brbousnguar/pilotkit/releases/tag/v0.1.0
