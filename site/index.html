@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pilotkit desk</title>
+  <link rel="icon" href="/brand/logo">
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <button class="menu-btn" id="menu" type="button" aria-label="Chats" aria-controls="chats" aria-expanded="false">☰</button>
+    <a class="brand" href="/"><img id="logo" src="/brand/logo" alt=""><span id="product">pilotkit desk</span></a>
+    <nav>
+      <a href="/" aria-current="page">Chat</a>
+      <a href="/credits">Credits</a>
+      <a href="/start">Start here</a>
+    </nav>
+    <div class="who"><span class="pill" id="quota" hidden></span><span class="login" id="login"></span></div>
+  </header>
+
+  <div class="layout">
+    <aside class="chats" id="chats" aria-label="Chats">
+      <button class="new" id="new-chat" type="button">+ New chat</button>
+      <ol id="chat-list"></ol>
+    </aside>
+
+    <main class="thread">
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <form class="composer" id="composer" autocomplete="off">
+        <textarea id="prompt" rows="2" placeholder="Ask about your Jira issues or Confluence pages…" aria-label="Your question"></textarea>
+        <div class="controls">
+          <label>Model <select id="model"></select></label>
+          <label title="The chat stops when it has spent this many AI credits (Copilot's minimum is 30)">Cap <input id="cap" type="number" min="30" step="10" inputmode="numeric"> credits</label>
+          <span class="spacer"></span>
+          <span id="hint">Enter sends · Shift+Enter for a new line</span>
+          <button class="btn" id="stop" type="button" hidden>Stop</button>
+          <button class="btn primary" id="send" type="submit">Send</button>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
