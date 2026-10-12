@@ -1,0 +1,114 @@
+/* The Credits page. Two series: this desk (clay) and the rest of the account's Copilot use (blue),
+   an orange/blue pair that stays apart for colour-blind readers; both are 3:1 or more on the cards. */
+:root {
+  --s-desk: #d2643c;
+  --s-other: #3f7fd0;
+  --s-total: #1f2a44;
+  --grid: #ebe1cf;
+}
+.credits { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; display: grid; gap: 16px; }
+.credits > * { min-width: 0; }
+.credits[aria-busy="true"] .tiles, .credits[aria-busy="true"] .chart { opacity: .55; }
+.cr-head h1 { font-weight: 750; font-size: clamp(1.7rem, 4vw, 2.4rem); line-height: 1.1; margin: 0 0 4px; }
+.cr-head p { margin: 0; }
+
+/* ── Tiles ─────────────────────────────────────────────────────────── */
+.tiles { display: grid; grid-template-columns: 2fr repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tiles.short { grid-template-columns: 2fr repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1000px) { .tiles, .tiles.short { grid-template-columns: 1fr 1fr; } .tile.lead { grid-column: 1 / -1; } }
+.tile { min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow-sm); display: grid; gap: 6px; align-content: start; }
+.tile .label { font: 600 .68rem/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.tile .value { font-family: var(--disp); font-variation-settings: 'SOFT' 50; font-weight: 750; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tile .value small { font-family: var(--read); font-size: .82rem; font-weight: 500; color: var(--ink-2); margin-left: 4px; }
+.tile .note { font-size: .78rem; color: var(--ink-2); line-height: 1.4; }
+.tile.lead .value { font-size: clamp(2.6rem, 6vw, 3.6rem); }
+.cmeter { position: relative; height: 12px; border-radius: 99px; background: #e9e2d4; margin: 8px 0 4px; }
+.cmeter .fill { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: var(--s-total); min-width: 4px; transition: width .6s var(--ease); }
+.cmeter .fill.over { background: var(--bad); }
+.cmeter .pace { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--ink-2); border-radius: 2px; }
+.meter-scale { display: flex; justify-content: space-between; gap: 8px; font-size: .72rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.status { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.05rem; }
+.status svg { width: 22px; height: 22px; flex-shrink: 0; }
+.status.good { color: var(--good); }
+.status.bad { color: var(--bad); }
+.status.even { color: var(--ink); }
+.minibar { height: 6px; border-radius: 99px; background: var(--paper-2); overflow: hidden; }
+.minibar i { display: block; height: 100%; background: var(--s-desk); border-radius: 99px; }
+.minibar i.over { background: var(--bad); }
+
+/* ── Charts ────────────────────────────────────────────────────────── */
+.chart-card { display: grid; gap: 10px; }
+.chart-head { display: flex; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; align-items: flex-end; }
+.chart-head h2 { font-size: 1.2rem; margin: 0 0 2px; }
+.chart-head p { margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .8rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key-rect { width: 12px; height: 12px; border-radius: 3px; }
+.key-line { width: 18px; height: 0; border-top: 2px solid; }
+.key-line.dash { border-top-style: dashed; }
+.key-line.dot { border-top-style: dotted; border-top-width: 2px; width: 22px; }
+.chart { position: relative; transition: opacity .3s; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .grid { stroke: var(--grid); stroke-width: 1; }
+.chart .axis { stroke: #d8cdb8; stroke-width: 1; }
+.chart .tick { font: 500 11px var(--read); fill: var(--ink-3); font-variant-numeric: tabular-nums; }
+.chart .tick.today { font-weight: 700; fill: var(--ink); }
+.chart .ref { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 6 5; fill: none; }
+.chart .proj { stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; fill: none; }
+.chart .total { stroke: var(--s-total); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.chart .untracked { stroke: var(--s-total); stroke-width: 2; stroke-dasharray: 5 5; opacity: .45; fill: none; }
+.chart .area { fill: var(--s-total); opacity: .08; }
+.chart .reflabel { font: 600 11.5px var(--read); fill: var(--ink-2); }
+.chart .endlabel { font: 700 12px var(--read); fill: var(--ink); }
+.chart .endmark { fill: var(--s-total); stroke: var(--card); stroke-width: 2; }
+.chart .hit { fill: transparent; outline: none; }
+.chart .day { transition: opacity .15s; }
+.chart .day.dim { opacity: .45; }
+.chart .cross { stroke: var(--ink-3); stroke-width: 1; }
+.chart .bar-in { transform-box: fill-box; transform-origin: bottom; animation: grow .55s var(--ease) both; }
+@keyframes grow { from { transform: scaleY(0); } }
+
+.tooltip {
+  position: fixed; z-index: 40; pointer-events: none; min-width: 170px; max-width: 260px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 10px 12px;
+  font-size: .82rem; line-height: 1.45;
+}
+.tooltip .tt-head { font-weight: 700; margin-bottom: 4px; }
+.tooltip .tt-row { display: grid; grid-template-columns: 16px auto 1fr; gap: 8px; align-items: center; }
+.tooltip .tt-row b { font-variant-numeric: tabular-nums; }
+.tooltip .tt-row span:last-child { color: var(--ink-2); }
+.tooltip .tt-key { width: 14px; border-top: 2px solid; }
+.tooltip .tt-key.dash { border-top-style: dashed; }
+.tooltip .tt-note { color: var(--ink-3); font-size: .74rem; margin-top: 4px; }
+
+.table-view summary { cursor: pointer; font-size: .82rem; font-weight: 600; color: var(--ink-2); }
+.table-view > div { overflow-x: auto; }
+.table-view table { border-collapse: collapse; margin-top: 8px; font-size: .84rem; font-variant-numeric: tabular-nums; }
+.table-view th, .table-view td { text-align: right; padding: 4px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.table-view th:first-child, .table-view td:first-child { text-align: left; }
+.table-view th { font: 600 .68rem/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+
+/* ── Habits ────────────────────────────────────────────────────────── */
+.section-title { font-size: 1.25rem; margin: 10px 0 0; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.section-title .small { font-family: var(--read); font-weight: 500; }
+.habits { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px; }
+.habit { min-width: 0; }
+.habit h3 { font: 600 .68rem/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 12px; }
+.habit .big { font-family: var(--disp); font-variation-settings: 'SOFT' 50; font-weight: 750; font-size: 1.7rem; line-height: 1; }
+.habit .big small { font-family: var(--read); font-size: .8rem; font-weight: 500; color: var(--ink-2); margin-left: 4px; }
+.hbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; margin-bottom: 10px; }
+.hbar .hl { display: flex; justify-content: space-between; gap: 8px; font-size: .82rem; }
+.hbar .hl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hbar .hl b { font-variant-numeric: tabular-nums; }
+.hbar .hs { font-size: .74rem; color: var(--ink-2); }
+.hbar .track { height: 10px; }
+.hbar .track i { display: block; height: 100%; background: var(--s-desk); border-radius: 0 4px 4px 0; min-width: 3px; }
+.top-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.top-list li { min-width: 0; }
+.top-list a { min-width: 0; display: flex; justify-content: space-between; gap: 10px; text-decoration: none; color: var(--ink); font-size: .84rem; padding: 6px 8px; border-radius: 8px; background: var(--paper-2); }
+.top-list a:hover { background: #e6dcc8; }
+.top-list span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.top-list b { font-variant-numeric: tabular-nums; }
+.share { height: 10px; border-radius: 99px; background: var(--paper-2); overflow: hidden; margin: 8px 0 6px; }
+.share i { display: block; height: 100%; background: var(--ink-2); }
+.tips { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: .88rem; line-height: 1.5; }

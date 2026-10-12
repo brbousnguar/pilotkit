@@ -1,7 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 
 // One SQLite file in ~/.pilotkit holds the conversations of the desk and what each one cost:
-// a chat has turns, a turn has model calls (with their credits) and tool calls.
+// a chat has turns, a turn has model calls (with their credits) and tool calls. It also keeps the
+// readings of the Copilot allowance that the Credits page plans the month with.
 
 export function openDb(file) {
   const db = new DatabaseSync(file);
@@ -63,6 +64,12 @@ export function openDb(file) {
       PRIMARY KEY (chat_id, call_id)
     );
     CREATE INDEX IF NOT EXISTS calls_at ON calls (at);
+    -- The Copilot allowance as GitHub reported it, every 10 minutes while the desk runs (month.mjs)
+    CREATE TABLE IF NOT EXISTS quota_snapshots (
+      at TEXT PRIMARY KEY,
+      used REAL NOT NULL,
+      entitlement REAL NOT NULL
+    );
   `);
   // A desk that stopped mid-turn left chats "running"; nothing runs them any more.
   db.prepare(`UPDATE chats SET status = 'ready' WHERE status IN ('running', 'stopping')`).run();

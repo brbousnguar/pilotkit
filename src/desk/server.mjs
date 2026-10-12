@@ -4,11 +4,12 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { loadBrand, logoType } from '../brand.mjs';
 import { PKG_DIR, VERSION, ensureHome, loadConfig, paths } from '../config.mjs';
-import { creditsReport, openDb } from './db.mjs';
+import { openDb } from './db.mjs';
+import { monthReport, saveSnapshot, startSnapshots } from './month.mjs';
 import { MIN_CREDITS, Runner } from './runner.mjs';
 
 const SITE = join(PKG_DIR, 'site');
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8' };
 const PAGES = { '/': 'index.html', '/credits': 'credits.html', '/start': 'start.html' };
 const CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 
@@ -50,6 +51,7 @@ export async function startDesk({ port: wantedPort, open = true, log = console.l
   const db = openDb(paths.db);
   const runner = new Runner({ db, brand, config });
   await runner.start();
+  const stopSnapshots = startSnapshots(db, () => runner.quota());
   const hosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
 
   const api = async (req, res, path) => {
@@ -78,9 +80,9 @@ export async function startDesk({ port: wantedPort, open = true, log = console.l
       const id = runner.create({ text: text.trim(), model: model || config.desk.model, maxCredits: Number(maxCredits) || config.desk.maxCredits });
       return send(res, 201, { id });
     }
-    if (path === '/api/credits' && method === 'GET') {
-      const days = Math.min(365, Math.max(1, Number(new URL(req.url, 'http://x').searchParams.get('days')) || 30));
-      return send(res, 200, { days, ...creditsReport(db, days), quota: await runner.quota() });
+    if (path === '/api/month' && method === 'GET') {
+      saveSnapshot(db, await runner.quota());
+      return send(res, 200, monthReport(db, { models: runner.modelList() }));
     }
     const m = path.match(/^\/api\/chats\/([0-9a-f-]{36})(?:\/(messages|stop|archive))?$/);
     if (m) {
@@ -149,6 +151,7 @@ export async function startDesk({ port: wantedPort, open = true, log = console.l
   if (open) openBrowser(url);
 
   const close = async () => {
+    stopSnapshots();
     server.close();
     await runner.stop();
     db.close();

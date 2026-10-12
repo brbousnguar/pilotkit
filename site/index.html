@@ -2,42 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>pilotkit desk</title>
   <link rel="icon" href="/brand/logo">
+  <link rel="preload" href="/fonts/fraunces-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/app.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
-  <header class="top">
-    <button class="menu-btn" id="menu" type="button" aria-label="Chats" aria-controls="chats" aria-expanded="false">☰</button>
-    <a class="brand" href="/"><img id="logo" src="/brand/logo" alt=""><span id="product">pilotkit desk</span></a>
-    <nav>
-      <a href="/" aria-current="page">Chat</a>
-      <a href="/credits">Credits</a>
-      <a href="/start">Start here</a>
-    </nav>
-    <div class="who"><span class="pill" id="quota" hidden></span><span class="login" id="login"></span></div>
+  <header class="topbar">
+    <button class="icon-btn phone-only" id="menu" type="button" aria-label="Chats" aria-controls="history" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    </button>
+    <a class="brand" href="/">
+      <img class="brand-logo" id="logo" src="/brand/logo" alt="">
+      <span class="brand-text"><span class="brand-kicker">GitHub Copilot</span><span class="brand-name" id="product">pilotkit desk</span></span>
+    </a>
+    <div class="meter" id="meter" aria-live="polite"></div>
+    <a class="icon-btn wide-only" href="/start" aria-label="Start here" title="Start here: the four ways to ask">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.7M12 17.2v.1"/></svg>
+    </a>
+    <button class="icon-btn" id="gear" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/><circle cx="12" cy="12" r="6.6"/></svg>
+    </button>
   </header>
+  <div class="settings" id="settings" role="dialog" aria-label="Settings" hidden></div>
 
-  <div class="layout">
-    <aside class="chats" id="chats" aria-label="Chats">
-      <button class="new" id="new-chat" type="button">+ New chat</button>
-      <ol id="chat-list"></ol>
+  <div class="shell">
+    <aside class="history" id="history" aria-label="Chats">
+      <button class="btn new-chat" id="new-chat" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New chat
+      </button>
+      <nav id="chat-list" aria-label="Chats"></nav>
+      <a class="h-start" href="/start">Start here: the four ways to ask</a>
     </aside>
+    <div class="scrim" id="scrim" hidden></div>
 
-    <main class="thread">
-      <div class="messages" id="messages" aria-live="polite"></div>
+    <main class="chat">
+      <div class="chat-head" id="chat-head" hidden></div>
+      <div class="thread" id="messages" aria-live="polite"></div>
       <form class="composer" id="composer" autocomplete="off">
-        <textarea id="prompt" rows="2" placeholder="Ask about your Jira issues or Confluence pages…" aria-label="Your question"></textarea>
-        <div class="controls">
-          <label>Model <select id="model"></select></label>
-          <label title="The chat stops when it has spent this many AI credits (Copilot's minimum is 30)">Cap <input id="cap" type="number" min="30" step="10" inputmode="numeric"> credits</label>
-          <span class="spacer"></span>
-          <span id="hint">Enter sends · Shift+Enter for a new line</span>
-          <button class="btn" id="stop" type="button" hidden>Stop</button>
-          <button class="btn primary" id="send" type="submit">Send</button>
+        <div class="composer-box">
+          <textarea id="prompt" rows="1" placeholder="Ask about Jira or Confluence…" aria-label="Your question"></textarea>
+          <button class="send" id="send" type="submit" aria-label="Send"></button>
         </div>
+        <div class="composer-hint" id="hint"></div>
       </form>
     </main>
   </div>
