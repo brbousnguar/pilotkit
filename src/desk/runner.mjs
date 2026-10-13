@@ -1,9 +1,9 @@
 import { CopilotClient } from '@github/copilot-sdk';
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { TOOLS } from '../atlassian/tools.mjs';
 import { BIN, HOME, paths } from '../config.mjs';
-import { DESK_SERVER, deskPolicy } from './policy.mjs';
+import { addedConnectors } from '../connectors/index.mjs';
+import { deskPolicy } from './policy.mjs';
 
 const TURN_TIMEOUT_MS = 10 * 60 * 1000;
 const IDLE_MS = 15 * 60 * 1000;
@@ -12,24 +12,38 @@ export const MIN_CREDITS = 30;
 const now = () => new Date().toISOString();
 const clip = (s, n) => (s == null ? null : s.length > n ? `${s.slice(0, n)}…` : s);
 
-// What the MCP server needs to find its config and the OS credential store, whether the runtime
-// merges this with its own environment or uses it alone.
+// What an MCP server needs to find its config and the OS credential store, whether the runtime
+// merges this with its own environment or uses it alone, plus what its connector names.
 const PASS_ENV = ['PATH', 'Path', 'HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'SystemRoot', 'TEMP', 'TMP',
-  'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'DBUS_SESSION_BUS_ADDRESS', 'PILOTKIT_ATLASSIAN_TOKEN'];
-function mcpEnv() {
+  'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'DBUS_SESSION_BUS_ADDRESS'];
+function mcpEnv(extra = []) {
   const env = { PILOTKIT_HOME: HOME };
-  for (const k of PASS_ENV) if (process.env[k]) env[k] = process.env[k];
+  for (const k of [...PASS_ENV, ...extra]) if (process.env[k]) env[k] = process.env[k];
   return env;
 }
 
-export function deskGuide({ brand, site }) {
-  return `You are the ${brand.product} assistant. You help consultants with their Jira issues and Confluence pages.
-Use the pilotkit tools to read ${site ? `the Atlassian site ${site}` : 'Atlassian'}; they only read, so you cannot change a ticket or a page: when the user wants a change, write the comment, description or update for them to paste.
+// One MCP server per added connector, as the desk session starts them.
+export function deskServers(connectors) {
+  return Object.fromEntries(connectors.map((c) => [c.server, {
+    type: 'local',
+    command: process.execPath,
+    args: [BIN, 'mcp', c.id],
+    env: mcpEnv(c.env),
+    workingDirectory: paths.workspace,
+    tools: ['*'],
+  }]));
+}
+
+const list = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`);
+
+export function deskGuide({ brand, connectors, config }) {
+  const lines = connectors.map((c) => c.desk(config));
+  return `You are the ${brand.product} assistant. You help consultants with ${list(lines.map((l) => l.about)) || 'their work'}.
+${lines.map((l) => `${l.read}\n`).join('')}The tools only read: when the user wants a change, write the comment, description or update for them to paste.
 Every model call is billed in AI credits and re-sends the whole conversation, so be economical:
 - call independent tools in the same step, not one per message;
-- prefer jira_my_issues and jira_search with a small "max"; read a page or issue only when the question needs it;
-- stop as soon as you can answer; do not announce what you are about to do.
-Link every issue and page you mention, as Markdown links. Answer in the language of the user, short, with tables for lists.`;
+${lines.map((l) => `- ${l.economy};\n`).join('')}- stop as soon as you can answer; do not announce what you are about to do.
+${lines.length ? `Link every ${list(lines.map((l) => l.links))} you mention, as Markdown links. ` : ''}Answer in the language of the user, short, with tables for lists.`;
 }
 
 // A chat is one Copilot session. Its turns, the model calls of each turn (with their credits) and
@@ -122,25 +136,17 @@ export class Runner {
     const chat = this.chat(id);
     const max = (table) => this.db.prepare(`SELECT COALESCE(MAX(seq), 0) n FROM ${table} WHERE chat_id = ?`).get(id).n;
     const live = { session: null, turn: chat.turns, callSeq: max('calls'), toolSeq: max('tools'), eventSeq: max('events'), timer: null };
+    const connectors = addedConnectors(this.config);
     const config = {
       model: chat.model,
       streaming: true,
       workingDirectory: paths.workspace,
       skipCustomInstructions: true,
-      systemMessage: { mode: 'append', content: deskGuide({ brand: this.brand, site: this.config.atlassian.site }) },
-      mcpServers: {
-        [DESK_SERVER]: {
-          type: 'local',
-          command: process.execPath,
-          args: [BIN, 'mcp'],
-          env: mcpEnv(),
-          workingDirectory: paths.workspace,
-          tools: ['*'],
-        },
-      },
-      availableTools: TOOLS.map((t) => `${DESK_SERVER}-${t.name}`),
+      systemMessage: { mode: 'append', content: deskGuide({ brand: this.brand, connectors, config: this.config }) },
+      mcpServers: deskServers(connectors),
+      availableTools: connectors.flatMap((c) => c.tools.map((t) => `${c.server}-${t}`)),
       sessionLimits: { maxAiCredits: chat.max_credits },
-      onPermissionRequest: deskPolicy((req, reason) => this.refused(id, live, req, reason)),
+      onPermissionRequest: deskPolicy(connectors.map((c) => c.server), (req, reason) => this.refused(id, live, req, reason)),
     };
     live.session = chat.session_id
       ? await this.client.resumeSession(chat.session_id, { ...config, suppressResumeEvent: true })

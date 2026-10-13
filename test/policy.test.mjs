@@ -4,10 +4,14 @@ import { pageIdFrom } from '../src/atlassian/tools.mjs';
 import { normalizeSite } from '../src/config.mjs';
 import { deskPolicy } from '../src/desk/policy.mjs';
 
-test('the desk approves the pilotkit tools and refuses everything else', () => {
+test('the desk approves the tools of the added connectors and refuses everything else', () => {
   const refused = [];
-  const policy = deskPolicy((req, reason) => refused.push(reason));
-  assert.deepEqual(policy({ kind: 'mcp', serverName: 'pilotkit', toolName: 'jira_search' }), { kind: 'approve-once' });
+  const policy = deskPolicy(['pilotkit-atlassian'], (req, reason) => refused.push(reason));
+  assert.deepEqual(policy({ kind: 'mcp', serverName: 'pilotkit-atlassian', toolName: 'jira_search' }), { kind: 'approve-once' });
+  // A connector this PC did not add, or the 0.2 name, is refused like any other server.
+  assert.equal(policy({ kind: 'mcp', serverName: 'pilotkit-salesforce', toolName: 'query' }).kind, 'reject');
+  assert.equal(policy({ kind: 'mcp', serverName: 'pilotkit', toolName: 'jira_search' }).kind, 'reject');
+  refused.length = 0;
   const shell = policy({ kind: 'shell', fullCommandText: 'rm -rf /' });
   assert.equal(shell.kind, 'reject');
   assert.match(shell.feedback, /shell access is off/);

@@ -1,14 +1,11 @@
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { createConnection } from 'node:net';
-import { join } from 'node:path';
 import { loadBrand } from '../brand.mjs';
-import { createAtlassian } from '../atlassian/client.mjs';
-import {
-  copilotRegistered, copilotVersion, parseJsonc, serverLaunch, unregisterCopilot, unregisterVSCode, vscodeRegistered, vscodeUserDirs, SERVER_NAME,
-} from '../clients.mjs';
-import { HOME, VERSION, loadConfig } from '../config.mjs';
-import { deleteToken, readToken, storeName } from '../secrets.mjs';
+import { copilotRegistered, copilotVersion, serverLaunch, vscodeEntry, vscodeUserDirs } from '../clients.mjs';
+import { CONNECTORS, addedConnectors } from '../connectors/index.mjs';
+import { HOME, VERSION, loadConfig, saveConfig } from '../config.mjs';
 import { copilotStatus, quotaLine } from './copilot.mjs';
+import { unregisterAll } from './setup.mjs';
 import { bad, bold, info, ok, warn } from './ui.mjs';
 
 const portOpen = (port) => new Promise((resolve) => {
@@ -41,36 +38,37 @@ export async function doctor() {
     if (quota) info(quota);
   } else fail(`Copilot not signed in${status.message ? ` (${status.message})` : ''}`, 'Run "copilot login", or "pilotkit setup".');
 
-  const { site, email } = config.atlassian;
-  if (!site || !email) fail('Atlassian is not set up', 'Run "pilotkit setup".');
-  else {
-    const token = readToken(email);
-    if (!token) fail(`No Atlassian token in ${storeName()}`, 'Run "pilotkit setup" to enter one.');
-    else {
-      try {
-        const me = await createAtlassian({ site, email, token }).myself();
-        ok(`Atlassian ${site}: ${me.displayName}`);
-      } catch (err) {
-        fail(`Atlassian ${site}: ${err.message}`);
-      }
-    }
-  }
+  const connectors = addedConnectors(config);
+  if (!connectors.length) fail('No system is connected', `Run "pilotkit setup", or "pilotkit add <${CONNECTORS.map((c) => c.id).join('|')}>".`);
+  const dirs = vscodeUserDirs();
+  for (const c of connectors) {
+    const res = await c.check(config);
+    if (res.ok) ok(res.message);
+    else fail(res.message, res.fix);
 
-  const launch = serverLaunch();
-  if (cli) {
-    if (copilotRegistered()) ok('The Copilot CLI knows the pilotkit tools');
-    else fail('The Copilot CLI does not know the pilotkit tools', 'Run "pilotkit setup".');
-  }
-  for (const dir of vscodeUserDirs()) {
-    if (!vscodeRegistered(dir)) {
-      fail(`VS Code (${dir}) does not know the pilotkit tools`, 'Run "pilotkit setup".');
-      continue;
+    const launch = serverLaunch(c.id);
+    const oldName = (has) => c.replaces.find((name) => has(name));
+    if (cli) {
+      const known = copilotRegistered(c.server);
+      const old = known ? null : oldName(copilotRegistered);
+      if (known) ok(`The Copilot CLI knows ${c.server}`);
+      else if (old) {
+        warn(`The Copilot CLI has ${c.title} under its old name "${old}": it works, but run "pilotkit setup" to rename it ${c.server}.`);
+      } else fail(`The Copilot CLI does not know ${c.server}`, `Run "pilotkit add ${c.id}".`);
     }
-    // A Node upgrade or a move of the global npm folder leaves the old paths behind.
-    const entry = parseJsonc(readFileSync(join(dir, 'mcp.json'), 'utf8')).servers[SERVER_NAME];
-    const stale = entry.command !== 'npx' && (!existsSync(entry.command) || !existsSync(entry.args?.[0] ?? ''));
-    if (stale) fail(`VS Code starts pilotkit from a path that is gone (${entry.command})`, 'Run "pilotkit setup" again.');
-    else ok(`VS Code knows the pilotkit tools${entry.command === launch.command ? '' : ' (from another install)'}`);
+    for (const dir of dirs) {
+      const old = vscodeEntry(dir, c.server) ? null : oldName((name) => vscodeEntry(dir, name));
+      const entry = vscodeEntry(dir, c.server) ?? (old && vscodeEntry(dir, old));
+      if (!entry) {
+        fail(`VS Code (${dir}) does not know ${c.server}`, `Run "pilotkit add ${c.id}".`);
+        continue;
+      }
+      // A Node upgrade or a move of the global npm folder leaves the old paths behind.
+      const stale = entry.command !== 'npx' && (!existsSync(entry.command) || !existsSync(entry.args?.[0] ?? ''));
+      if (stale) fail(`VS Code starts ${c.server} from a path that is gone (${entry.command})`, 'Run "pilotkit setup" again.');
+      else if (old) warn(`VS Code has ${c.title} under its old name "${old}": it works, but run "pilotkit setup" to rename it ${c.server}.`);
+      else ok(`VS Code knows ${c.server}${entry.command === launch.command ? '' : ' (from another install)'}`);
+    }
   }
 
   const port = config.desk.port;
@@ -82,11 +80,14 @@ export async function doctor() {
 }
 
 export async function unlink({ purge = false } = {}) {
-  const { email } = loadConfig().atlassian;
-  if (unregisterCopilot()) ok('Removed from the Copilot CLI');
-  for (const dir of vscodeUserDirs()) if (unregisterVSCode(dir)) ok(`Removed from VS Code (${dir})`);
-  deleteToken(email);
-  ok('Atlassian token deleted');
+  const config = loadConfig();
+  unregisterAll();
+  for (const c of CONNECTORS.filter((x) => x.configured(config))) {
+    const forgot = c.forget(config);
+    if (forgot) ok(forgot);
+  }
+  config.connectors = [];
+  saveConfig(config);
   if (purge) {
     rmSync(HOME, { recursive: true, force: true });
     ok(`Deleted ${HOME} (settings, brand and desk history)`);
@@ -95,4 +96,3 @@ export async function unlink({ purge = false } = {}) {
   }
   return 0;
 }
-

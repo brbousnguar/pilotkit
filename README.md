@@ -40,7 +40,7 @@ pilotkit start    # open the desk: chat about your tickets and pages, with the c
 ```
 
 - **One setup command** walks through four steps: GitHub Copilot sign-in (installing the Copilot CLI if needed), the Atlassian site, email and API token (checked against Jira before anything is saved), registration in the Copilot CLI and every VS Code install, and what to do next.
-- **A read-only Atlassian MCP server** with seven tools for Jira and Confluence Cloud. It reads with the user's own account, so it sees what they could see in a browser, and it cannot change a ticket or a page.
+- **Read-only connectors, one MCP server per system.** Jira and Confluence Cloud come first: `pilotkit-atlassian`, seven tools that read with the user's own account, so they see what the user could see in a browser and cannot change a ticket or a page. Each system someone adds is its own server, so Copilot only carries the tools of the systems their job needs.
 - **The desk**, a chat page on `127.0.0.1`. It runs Copilot through the official [GitHub Copilot SDK](https://github.com/github/copilot-sdk), records each model call with the credits Copilot reports for it, and shows the cost under every answer, per day and per model.
 - **Brand packs**: the public package is neutral, and a team applies its own name, logo and colour with one command, without forking.
 
@@ -66,7 +66,7 @@ Setup asks for what it needs and checks each answer:
 
 1. **GitHub Copilot.** Finds the Copilot CLI, offers to install it, and signs in with `copilot login` (a browser page asks for a short code). It prints the account and its monthly allowance.
 2. **Jira and Confluence.** Asks for the site (`acme.atlassian.net`), the email and the API token, calls `/rest/api/3/myself` to prove they work, then stores the token in the OS credential store. A wrong token gets two more tries.
-3. **Copilot clients.** Runs `copilot mcp add pilotkit -- <node> <pilotkit> mcp` and adds a `pilotkit` server to the user `mcp.json` of VS Code and VS Code Insiders, keeping every other server (and a backup of the original file).
+3. **Copilot clients.** Runs `copilot mcp add pilotkit-atlassian -- <node> <pilotkit> mcp atlassian` and adds a `pilotkit-atlassian` server to the user `mcp.json` of VS Code and VS Code Insiders, keeping every other server (and a backup of the original file).
 4. **Next steps**, printed for the user.
 
 Every prompt has a flag, for scripted installs:
@@ -90,8 +90,10 @@ pilotkit start --no-open  # start it without opening a browser
 pilotkit doctor           # check Node, Copilot, Atlassian and both registrations, and say what to run
 pilotkit credits          # credits spent in the desk, by day and by model (--days 7)
 pilotkit brand <folder>   # apply a brand pack; --reset goes back to the neutral look
-pilotkit unlink           # remove the tools from Copilot and VS Code and delete the token (--purge also deletes ~/.pilotkit)
-pilotkit mcp              # the MCP server on stdio: what Copilot and VS Code start
+pilotkit add atlassian    # connect one system and register its server (setup does this on a first run)
+pilotkit remove atlassian # take one system's server out of Copilot and VS Code and delete its credentials
+pilotkit unlink           # remove every pilotkit server from Copilot and VS Code and delete the credentials (--purge also deletes ~/.pilotkit)
+pilotkit mcp atlassian    # a connector's MCP server on stdio: what Copilot and VS Code start
 ```
 
 Once set up, the same tools work in four places:
@@ -99,9 +101,21 @@ Once set up, the same tools work in four places:
 | Where | How |
 |---|---|
 | The desk | `pilotkit start`, then ask on the Chat page |
-| VS Code | Copilot Chat → **Agent** mode → the tools icon lists **pilotkit**. VS Code asks once to trust and start the server. |
-| Copilot CLI | `copilot`, then ask. For one question: `copilot -p "Summarize KEY-123" --allow-tool=pilotkit` |
-| GitHub Copilot app | `copilot app` opens it. If pilotkit is not in its tool list, add an MCP server with the command `pilotkit mcp`. |
+| VS Code | Copilot Chat → **Agent** mode → the tools icon lists **pilotkit-atlassian**. VS Code asks once to trust and start the server. |
+| Copilot CLI | `copilot`, then ask. For one question: `copilot -p "Summarize KEY-123" --allow-tool=pilotkit-atlassian` |
+| GitHub Copilot app | `copilot app` opens it. If pilotkit-atlassian is not in its tool list, add an MCP server with the command `pilotkit mcp atlassian`. |
+
+## Connectors
+
+A connector is one system pilotkit can read, with its own MCP server named `pilotkit-<connector>`. Copilot sends the descriptions of every enabled server's tools with each request, so one server holding every system would cost more credits per question and choose tools worse as it grew (VS Code also stops at 128 tools per request). With one server per system, each person adds only what their job needs, and removes it on its own.
+
+| Connector | Server | Reads |
+|---|---|---|
+| `atlassian` | `pilotkit-atlassian` | Jira and Confluence Cloud, with your API token |
+
+`pilotkit setup` sets up the connectors this PC already has, or Atlassian on a first run. `pilotkit add <connector>` and `pilotkit remove <connector>` handle one at a time. The desk and its credits cover every connector added on this PC, and it only approves their tools.
+
+**Upgrading from 0.2.** The server used to be registered as `pilotkit`. It keeps working, and `pilotkit doctor` points it out; `pilotkit setup` renames it `pilotkit-atlassian` in the Copilot CLI and in VS Code.
 
 ## The desk
 
@@ -174,7 +188,8 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 |---|---|
 | Settings, desk history, brand pack | `~/.pilotkit/` (`config.json`, `desk.db`, `brand/`) |
 | Atlassian token | macOS Keychain service `pilotkit-atlassian`; `~/.pilotkit/atlassian.token` (DPAPI) on Windows; Secret Service on Linux |
-| Copilot CLI registration | `~/.copilot/mcp-config.json`, through `copilot mcp add` |
+| Connectors added on this PC | `connectors` in `~/.pilotkit/config.json` |
+| Copilot CLI registration | `~/.copilot/mcp-config.json`, through `copilot mcp add`: one `pilotkit-<connector>` entry per connector |
 | VS Code registration | The user `mcp.json`: `~/Library/Application Support/Code/User/` (macOS), `%APPDATA%\Code\User\` (Windows), `~/.config/Code/User/` (Linux) |
 
 ## Tech stack
@@ -191,14 +206,15 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 ## Repository layout
 
 ```text
-bin/pilotkit.mjs        the CLI: setup, start, doctor, credits, brand, unlink, mcp
+bin/pilotkit.mjs        the CLI: setup, add, remove, start, doctor, credits, brand, unlink, mcp
 src/
   config.mjs            ~/.pilotkit paths, config.json, site normalisation
   secrets.mjs           the token in the Keychain, DPAPI or the Secret Service
   clients.mjs           registration in the Copilot CLI and VS Code (JSONC-safe)
   brand.mjs             brand pack validation, install, load
+  connectors/           the connector catalogue; each connector's setup, check, desk lines and server
   atlassian/            REST client, ADF and storage-format to text, the seven tools, the MCP server
-  cli/                  setup, doctor and unlink, credits, terminal prompts
+  cli/                  setup, add and remove, doctor and unlink, credits, terminal prompts
   desk/                 HTTP server, Copilot session runner, SQLite schema, month report, tool policy
 site/                   the desk: chat, credits and start pages, Markdown renderer, default logo, fonts
 examples/brand-acme/    a fictional brand pack

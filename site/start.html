@@ -35,17 +35,17 @@
       </li>
       <li class="card">
         <h3>VS Code, in Copilot Chat</h3>
-        <p>Open Copilot Chat (<code>Ctrl+Alt+I</code>, <code>⌃⌘I</code> on a Mac), switch the mode to <strong>Agent</strong>, then click the tools icon: <strong>pilotkit</strong> is in the list. The first time, VS Code asks you to trust and start the server; say yes.</p>
+        <p>Open Copilot Chat (<code>Ctrl+Alt+I</code>, <code>⌃⌘I</code> on a Mac), switch the mode to <strong>Agent</strong>, then click the tools icon: <strong>pilotkit-atlassian</strong> is in the list. The first time, VS Code asks you to trust and start the server; say yes.</p>
         <p>Name the source when it helps: <em>"Use pilotkit to list my open Jira issues."</em></p>
       </li>
       <li class="card">
         <h3>The terminal, with the Copilot CLI</h3>
         <p>Run <code>copilot</code> in any folder and ask. Copilot asks before each tool call; allow the pilotkit tools for the session. For a single question, allow them up front (they only read):</p>
-        <pre><code>copilot -p "Summarize the Jira issue KEY-123" --allow-tool=pilotkit</code></pre>
+        <pre><code>copilot -p "Summarize the Jira issue KEY-123" --allow-tool=pilotkit-atlassian</code></pre>
       </li>
       <li class="card">
         <h3>The GitHub Copilot app</h3>
-        <p><code>copilot app</code> opens it. If pilotkit is not in its tool list, add an MCP server there with the command <code>pilotkit mcp</code>.</p>
+        <p><code>copilot app</code> opens it. If pilotkit-atlassian is not in its tool list, add an MCP server there with the command <code>pilotkit mcp atlassian</code>.</p>
       </li>
     </ol>
 

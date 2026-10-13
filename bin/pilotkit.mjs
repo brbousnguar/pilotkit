@@ -12,16 +12,21 @@ const HELP = `pilotkit — GitHub Copilot with Jira and Confluence, set up in on
 
 Usage
   pilotkit setup [options]     sign in to Copilot, connect Atlassian, add the tools to Copilot and VS Code
+  pilotkit add <connector>     connect one system and add its tools to Copilot and VS Code (atlassian)
+  pilotkit remove <connector>  take one system's tools out of Copilot and VS Code and delete its credentials
   pilotkit start [--port n]    open the desk: chat about tickets and pages, with the AI credits of every answer
                                (--no-open starts it without opening a browser)
   pilotkit doctor              check every part of the setup
   pilotkit credits [--days n]  credits spent in the desk, by day and by model
   pilotkit brand [folder|url]  apply a brand pack, or show the current one; --reset goes back to neutral
-  pilotkit mcp                 run the Atlassian MCP server on stdio (what Copilot and VS Code start)
-  pilotkit unlink [--purge]    remove the tools from Copilot and VS Code and delete the token
+  pilotkit mcp <connector>     run a connector's MCP server on stdio (what Copilot and VS Code start)
+  pilotkit unlink [--purge]    remove every pilotkit server from Copilot and VS Code and delete the credentials
   pilotkit --version
 
-Setup options
+Each connector is its own MCP server, pilotkit-<connector> (pilotkit-atlassian), so Copilot
+carries only the tools of the systems you added.
+
+Setup and add options
   --brand <folder|url>   apply a brand pack (brand.json + logo), e.g. your company's name and logo
   --site <url>           Atlassian site, e.g. acme.atlassian.net
   --email <email>        Atlassian account email
@@ -58,13 +63,27 @@ async function main() {
 
   switch (command) {
     case 'mcp': {
-      const { runMcp } = await import('../src/atlassian/mcp.mjs');
-      return runMcp();
+      // No name: a server registered before connectors existed (0.2), which was Atlassian.
+      const { findConnector } = await import('../src/connectors/index.mjs');
+      return findConnector(positionals[1] ?? 'atlassian').serve();
     }
     case 'setup': {
       const { setup } = await import('../src/cli/setup.mjs');
       return setup({
         brand: values.brand, site: values.site, email: values.email, newToken: values['new-token'], port,
+        skipCopilot: values['skip-copilot'], skipVscode: values['skip-vscode'],
+      });
+    }
+    case 'add':
+    case 'remove': {
+      if (!positionals[1]) throw new Error(`which connector? "pilotkit ${command} atlassian"`);
+      const cli = await import('../src/cli/setup.mjs');
+      if (command === 'remove') {
+        process.exitCode = await cli.remove(positionals[1]);
+        return;
+      }
+      return cli.add(positionals[1], {
+        site: values.site, email: values.email, newToken: values['new-token'],
         skipCopilot: values['skip-copilot'], skipVscode: values['skip-vscode'],
       });
     }

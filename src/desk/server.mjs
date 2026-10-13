@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { loadBrand, logoType } from '../brand.mjs';
 import { PKG_DIR, VERSION, ensureHome, loadConfig, paths } from '../config.mjs';
+import { addedConnectors } from '../connectors/index.mjs';
 import { openDb } from './db.mjs';
 import { monthReport, saveSnapshot, startSnapshots } from './month.mjs';
 import { MIN_CREDITS, Runner } from './runner.mjs';
@@ -64,6 +65,7 @@ export async function startDesk({ port: wantedPort, open = true, log = console.l
         version: VERSION,
         brand: { name: brand.name, product: brand.product, accent: brand.accent, welcome: brand.welcome, links: brand.links, custom: brand.custom },
         copilot: { authenticated: Boolean(runner.auth?.isAuthenticated), login: runner.auth?.login ?? null, message: runner.auth?.statusMessage ?? null },
+        connectors: addedConnectors(config).map((c) => ({ id: c.id, title: c.title, server: c.server })),
         atlassian: { site: config.atlassian.site, email: config.atlassian.email },
         models: runner.modelList(),
         defaults: { model: config.desk.model, maxCredits: Math.max(MIN_CREDITS, config.desk.maxCredits), minCredits: MIN_CREDITS },
