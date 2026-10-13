@@ -2,7 +2,7 @@ import { existsSync, rmSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { loadBrand } from '../brand.mjs';
 import { copilotRegistered, copilotVersion, serverLaunch, vscodeEntry, vscodeUserDirs } from '../clients.mjs';
-import { CONNECTORS, addedConnectors } from '../connectors/index.mjs';
+import { CONNECTORS, addedConnectors, offeredConnectors } from '../connectors/index.mjs';
 import { HOME, VERSION, loadConfig, saveConfig } from '../config.mjs';
 import { copilotStatus, quotaLine } from './copilot.mjs';
 import { unregisterAll } from './setup.mjs';
@@ -39,7 +39,7 @@ export async function doctor() {
   } else fail(`Copilot not signed in${status.message ? ` (${status.message})` : ''}`, 'Run "copilot login", or "pilotkit setup".');
 
   const connectors = addedConnectors(config);
-  if (!connectors.length) fail('No system is connected', `Run "pilotkit setup", or "pilotkit add <${CONNECTORS.map((c) => c.id).join('|')}>".`);
+  if (!connectors.length) fail('No system is connected', `Run "pilotkit setup", or "pilotkit add <${offeredConnectors().map((c) => c.id).join('|')}>".`);
   const dirs = vscodeUserDirs();
   for (const c of connectors) {
     const res = await c.check(config);
