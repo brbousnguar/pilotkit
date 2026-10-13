@@ -26,7 +26,9 @@ for anything that writes, so a test never touches a real setup.
 - `src/salesforce/`: `sf.mjs` (runs the Salesforce CLI: read commands only, safe arguments, `--json`),
   `soql.mjs` (SELECT/FIND checks, the LIMIT it adds), `text.mjs` (records and describes to short
   text), `client.mjs` (the org allowlist; queries go to `sf` in a temp file), `tools.mjs`, `mcp.mjs`.
-  pilotkit keeps no Salesforce credential: `sf` keeps its own logins.
+  pilotkit keeps no Salesforce credential: `sf` keeps its own logins. Salesforce is a **preview**
+  (`PREVIEW` in `src/connectors/index.mjs`): not yet checked against a live org, so `pilotkit add`
+  offers it only with `PILOTKIT_PREVIEW=salesforce`, and the README does not mention it yet.
 - `src/clients.mjs`: registration of a named server with the Copilot CLI (`copilot mcp add`) and
   VS Code (user `mcp.json`, JSONC-tolerant, backup first), dropping the old names it `replaces`
   (0.2's `pilotkit`). `serverLaunch(id)` decides the command clients run.

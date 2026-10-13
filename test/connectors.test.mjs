@@ -8,7 +8,7 @@ import { test } from 'node:test';
 const home = mkdtempSync(join(tmpdir(), 'pk-home-'));
 process.env.PILOTKIT_HOME = home;
 const { loadConfig, saveConfig } = await import('../src/config.mjs');
-const { CONNECTORS, addedConnectors, findConnector, markAdded, markRemoved } = await import('../src/connectors/index.mjs');
+const { CONNECTORS, PREVIEW, addedConnectors, findConnector, markAdded, markRemoved, offeredConnector, offeredConnectors } = await import('../src/connectors/index.mjs');
 const { deskGuide, deskServers } = await import('../src/desk/runner.mjs');
 
 const brand = { product: 'pilotkit desk' };
@@ -20,6 +20,22 @@ test('every connector has a server named pilotkit-<id> and the parts the CLI and
     assert.ok(c.tools.length > 0 && c.tools.length < 20, `${c.id} keeps its tool list short`);
   }
   assert.throws(() => findConnector('nope'), /not a pilotkit connector\. Connectors: atlassian/);
+});
+
+test('a preview connector is offered only with PILOTKIT_PREVIEW, and keeps working once added', () => {
+  assert.ok(PREVIEW.has('salesforce'));
+  delete process.env.PILOTKIT_PREVIEW;
+  assert.deepEqual(offeredConnectors().map((c) => c.id), ['atlassian']);
+  assert.throws(() => offeredConnector('salesforce'), /not a pilotkit connector\. Connectors: atlassian$/);
+  assert.equal(findConnector('salesforce').id, 'salesforce');
+  assert.deepEqual(addedConnectors({ connectors: ['salesforce'] }).map((c) => c.id), ['salesforce']);
+  process.env.PILOTKIT_PREVIEW = 'other, salesforce';
+  try {
+    assert.equal(offeredConnector('salesforce').id, 'salesforce');
+    assert.deepEqual(offeredConnectors().map((c) => c.id), ['atlassian', 'salesforce']);
+  } finally {
+    delete process.env.PILOTKIT_PREVIEW;
+  }
 });
 
 test('a 0.2 config with Atlassian set up counts as the atlassian connector', () => {

@@ -2,7 +2,7 @@ import { installBrand, loadBrand } from '../brand.mjs';
 import {
   copilotVersion, registerCopilot, registerVSCode, runTool, serverLaunch, unregisterCopilot, unregisterVSCode, vscodeUserDirs,
 } from '../clients.mjs';
-import { CONNECTORS, addedConnectors, findConnector, markAdded, markRemoved } from '../connectors/index.mjs';
+import { CONNECTORS, addedConnectors, findConnector, markAdded, markRemoved, offeredConnector } from '../connectors/index.mjs';
 import { DEFAULT_PORT, loadConfig, saveConfig } from '../config.mjs';
 import { copilotStatus, quotaLine } from './copilot.mjs';
 import { bad, bold, confirm, dim, info, ok, step, warn } from './ui.mjs';
@@ -79,7 +79,7 @@ export async function setup(opts) {
 
 // `pilotkit add <connector>`: its credentials, then its server in the Copilot clients.
 export async function add(id, opts) {
-  const c = findConnector(id);
+  const c = offeredConnector(id);
   const config = loadConfig();
   const brand = loadBrand();
   console.log(`\n${bold(`Add ${c.title}`)} ${dim(`— the ${c.server} tools for Copilot on this PC`)}`);

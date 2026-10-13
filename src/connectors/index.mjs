@@ -11,9 +11,29 @@ import { salesforce } from './salesforce.mjs';
 // reads, without network), desk(config) and serve().
 export const CONNECTORS = [atlassian, salesforce];
 
+// Built but not yet checked against a live system: `pilotkit add` offers one only when
+// PILOTKIT_PREVIEW names it (PILOTKIT_PREVIEW=salesforce). Once added, it works like any other
+// connector on that PC: its server, the desk, doctor and remove need no variable.
+export const PREVIEW = new Set(['salesforce']);
+
+const previewOn = (id) => (process.env.PILOTKIT_PREVIEW ?? '').split(',').map((s) => s.trim()).includes(id);
+
+/** The connectors `pilotkit add` offers on this PC. */
+export const offeredConnectors = () => CONNECTORS.filter((c) => !PREVIEW.has(c.id) || previewOn(c.id));
+
+const notOne = (id) => new Error(`"${id}" is not a pilotkit connector. Connectors: ${offeredConnectors().map((x) => x.id).join(', ')}`);
+
+/** Any connector by id: for a server, remove and the desk, which only see what this PC added. */
 export function findConnector(id) {
   const c = CONNECTORS.find((x) => x.id === id);
-  if (!c) throw new Error(`"${id}" is not a pilotkit connector. Connectors: ${CONNECTORS.map((x) => x.id).join(', ')}`);
+  if (!c) throw notOne(id);
+  return c;
+}
+
+/** A connector `pilotkit add` may set up. */
+export function offeredConnector(id) {
+  const c = offeredConnectors().find((x) => x.id === id);
+  if (!c) throw notOne(id);
   return c;
 }
 
