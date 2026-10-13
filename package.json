@@ -1,6 +1,6 @@
 {
   "name": "pilotkit",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "One command to set up GitHub Copilot with Jira and Confluence on a colleague's PC, plus a local desk that shows the AI credits every question costs.",
   "type": "module",
   "bin": {
