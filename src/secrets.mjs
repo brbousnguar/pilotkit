@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { win32 } from 'node:path';
 import { ensureHome, paths } from './config.mjs';
 
 // The Atlassian API token never goes into config.json or an MCP config file. It sits in the OS
@@ -13,16 +14,40 @@ const SERVICE = 'pilotkit-atlassian';
 // By full path: an MCP client may start the server with a short PATH.
 const SECURITY = '/usr/bin/security';
 
-function run(cmd, args, input) {
-  const res = spawnSync(cmd, args, { input, encoding: 'utf8', windowsHide: true });
+function run(cmd, args, input, env) {
+  const res = spawnSync(cmd, args, { input, env, encoding: 'utf8', windowsHide: true });
   if (res.error) return { ok: false, out: '', err: res.error.message };
   return { ok: res.status === 0, out: res.stdout ?? '', err: res.stderr ?? '' };
 }
 
-// PowerShell reads the script from -EncodedCommand (UTF-16LE base64) and the secret from stdin.
+// Windows PowerShell 5.1, which ships with every Windows, holds the DPAPI cmdlets.
+// - By full path, like `security` above.
+// - Without the inherited PSModulePath: started from a PowerShell 7 window, 5.1 would otherwise
+//   find PowerShell 7's Microsoft.PowerShell.Security first and fail to load it.
+// - The script goes as plain text (it holds no secret; -EncodedCommand is what security tools
+//   flag), and the secret comes on stdin.
+export function powershellCommand(script, env = process.env) {
+  const childEnv = Object.fromEntries(Object.entries(env).filter(([k]) => k.toLowerCase() !== 'psmodulepath'));
+  const systemRoot = env.SystemRoot || env.SYSTEMROOT || 'C:\\Windows';
+  return {
+    cmd: win32.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+    args: ['-NoProfile', '-NonInteractive', '-OutputFormat', 'Text', '-Command', script],
+    env: childEnv,
+  };
+}
+
+// PowerShell can still report errors as CLIXML ("#< CLIXML <Objs>…"): keep only their text.
+export function plainPowershellError(err) {
+  if (!err.startsWith('#< CLIXML')) return err.trim();
+  const unescape = (s) => s.replace(/_x000D__x000A_/g, '\n').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  return [...err.matchAll(/<S S="Error">([\s\S]*?)<\/S>/g)].map((m) => unescape(m[1])).join('').trim();
+}
+
 function powershell(script, input) {
-  const encoded = Buffer.from(script, 'utf16le').toString('base64');
-  return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded], input);
+  const { cmd, args, env } = powershellCommand(script);
+  const res = run(cmd, args, input, env);
+  return { ...res, err: plainPowershellError(res.err) };
 }
 
 const hasCommand = (cmd) => run(process.platform === 'win32' ? 'where' : 'which', [cmd]).ok;
