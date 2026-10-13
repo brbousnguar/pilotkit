@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-13
+
 ### Added
 - `jira_issue_history`: who changed what in Jira, and when. One issue (`key`) or several (`jql`), with a time window (`since`: `-7d`, `-24h`, `-2w` or a date), a field filter and a count of changes per person, from the same GET searches with `expand=changelog`. The desk suggests *"What changed in my open issues this week, and who changed it?"* (#31)
 
@@ -55,6 +57,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `pilotkit start`: a local desk on 127.0.0.1 that chats through the Copilot SDK and records the AI credits of every model call, per answer, per day, per model and per chat (#1)
 - `pilotkit credits` and `pilotkit brand`: a terminal credit report, and brand packs that apply a company's name, logo and accent colour from a folder outside this repo (#1)
 
-[Unreleased]: https://github.com/brbousnguar/pilotkit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/brbousnguar/pilotkit/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/brbousnguar/pilotkit/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/brbousnguar/pilotkit/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/brbousnguar/pilotkit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/brbousnguar/pilotkit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/brbousnguar/pilotkit/releases/tag/v0.1.0
