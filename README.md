@@ -244,7 +244,7 @@ Checked on 2026-10-12 on macOS with Node 24, Copilot CLI 1.0.91 and a real Jira 
 | Copilot CLI registration | Verified with Copilot CLI 1.0.91 in a scratch `COPILOT_HOME` (add, replace, remove) |
 | VS Code registration | Covered by tests on a JSONC `mcp.json` with other servers |
 | Windows (DPAPI token, `.cmd` shims) | Verified on 2026-10-13 from PowerShell 7.6.6 with Copilot CLI 1.0.94: `npm install -g` (from GitHub `main`), setup (DPAPI token, Copilot CLI and VS Code registration) and the desk answering from Jira. VS Code Agent mode not yet checked |
-| Connectors (`pilotkit-atlassian`, `add`/`remove`, the rename from 0.2's `pilotkit`) | Verified on 2026-10-13 on macOS with scratch Copilot and VS Code folders and a local stand-in for Atlassian: setup renames the old entry in both clients, the desk and `copilot --allow-tool=pilotkit-atlassian` call the tools. Not yet checked on Windows |
+| Connectors (`pilotkit-atlassian`, `add`/`remove`, the rename from 0.2's `pilotkit`) | Verified on 2026-10-13 on macOS with scratch Copilot and VS Code folders and a local stand-in for Atlassian: setup renames the old entry in both clients, the desk and `copilot --allow-tool=pilotkit-atlassian` call the tools. On Windows on 2026-10-13 (PowerShell 7.6.6, Copilot CLI 1.0.94, `npm install -g pilotkit` 0.3.0) against a real site: `doctor` flags the old name, `setup` renames it in both clients, `doctor` is clean afterwards and the desk answers |
 | Linux (Secret Service) | **Not yet verified** |
 | npm package | `npm pack` tarball installed globally into a scratch prefix: `--version`, `--help`, and the desk reaching Copilot, without koffi's install script |
 
