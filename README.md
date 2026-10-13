@@ -227,7 +227,7 @@ Checked on 2026-10-12 on macOS with Node 24, Copilot CLI 1.0.91 and a real Jira 
 | macOS Keychain token | Verified |
 | Copilot CLI registration | Verified with Copilot CLI 1.0.91 in a scratch `COPILOT_HOME` (add, replace, remove) |
 | VS Code registration | Covered by tests on a JSONC `mcp.json` with other servers |
-| Windows (DPAPI token, `.cmd` shims) | **Not yet verified on a Windows PC** |
+| Windows (DPAPI token, `.cmd` shims) | Verified on 2026-10-13 from PowerShell 7.6.6 with Copilot CLI 1.0.94: `npm install -g` (from GitHub `main`), setup (DPAPI token, Copilot CLI and VS Code registration) and the desk answering from Jira. VS Code Agent mode not yet checked |
 | Linux (Secret Service) | **Not yet verified** |
 | npm package | `npm pack` tarball installed globally into a scratch prefix: `--version`, `--help`, and the desk reaching Copilot, without koffi's install script |
 
