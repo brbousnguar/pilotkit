@@ -82,6 +82,8 @@ Every prompt has a flag, for scripted installs:
 
 `PILOTKIT_ATLASSIAN_TOKEN` supplies the token from the environment instead of the credential store, and `PILOTKIT_HOME` moves `~/.pilotkit` (a second profile, or tests).
 
+**Changing the Atlassian connection.** Anything that touches a credential runs in the terminal; the desk only shows the connection. Atlassian API tokens have an expiry date: when one expires or is revoked, `pilotkit doctor` says so and `pilotkit add atlassian --new-token` replaces it. `--email <email> --new-token` switches to another account (the previous account's token is deleted), `--site <url>` to another site. A client that already runs the server reads the new token when it restarts it.
+
 ## Run
 
 ```bash

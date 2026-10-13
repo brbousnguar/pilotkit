@@ -11,7 +11,7 @@ export class AtlassianError extends Error {
 }
 
 const HINTS = {
-  401: 'Atlassian rejected the email or API token. Run "pilotkit setup" to enter a new token.',
+  401: 'Atlassian rejected the email or API token: it expired or was revoked. Run "pilotkit add atlassian --new-token" in a terminal.',
   403: 'Your Atlassian account cannot see this. Ask the project admin for access.',
   404: 'Not found, or your account cannot see it.',
   410: 'Atlassian retired this API: update pilotkit.',

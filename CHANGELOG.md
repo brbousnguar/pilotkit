@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- When Atlassian refuses the token (expired or revoked), `pilotkit doctor` and the tools' errors say to run `pilotkit add atlassian --new-token` (#23)
+- Switching the Atlassian email deletes the previous account's token from the Keychain or the Secret Service, and setup no longer offers to keep a token saved for another account, which on Windows it did (#23)
+
 ## [0.3.0] - 2026-10-13
 
 ### Added

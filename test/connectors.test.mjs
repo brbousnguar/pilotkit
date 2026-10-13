@@ -60,3 +60,18 @@ test('the desk starts one server per added connector and names its tools in the 
   const none = deskGuide({ brand, connectors: [], config });
   assert.doesNotMatch(none, /Atlassian|Link every/);
 });
+
+test('doctor says to replace the Atlassian token when Atlassian answers 401', async () => {
+  const realFetch = globalThis.fetch;
+  process.env.PILOTKIT_ATLASSIAN_TOKEN = 'not-a-real-token';
+  globalThis.fetch = async () => new Response('{"message":"Unauthorized"}', { status: 401 });
+  try {
+    const res = await findConnector('atlassian').check({ atlassian: { site: 'https://acme.atlassian.net', email: 'a@acme.test' } });
+    assert.equal(res.ok, false);
+    assert.match(res.message, /refused the email and token/);
+    assert.match(res.fix, /pilotkit add atlassian --new-token/);
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.PILOTKIT_ATLASSIAN_TOKEN;
+  }
+});
