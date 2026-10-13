@@ -38,7 +38,8 @@ for anything that writes, so a test never touches a real setup.
   chat, usage events to credits), `db.mjs` (SQLite schema, credit report for `pilotkit credits`),
   `month.mjs` (quota readings every 10 minutes and the Credits page's month report), `policy.mjs`.
 - `site/`: the desk pages, plain JS modules (`common.js`, `app.js`, `credits.js`, `start.js`,
-  `md.js`). No framework and no bundler; the CSP forbids inline scripts. Atlas look, light only:
+  `md.js`, `connectors.js` for what each connector shows, `turn.js` for which messages are answer).
+  No framework and no bundler; the CSP forbids inline scripts. Atlas look, light only:
   tokens at the top of `app.css`, fonts self-hosted in `site/fonts/` (OFL, see `LICENSES.txt`).
 
 ## Invariants

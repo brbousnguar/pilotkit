@@ -1,6 +1,7 @@
 import { $, api, esc, fmtCredits, fmtMs, fmtTokens, loadShell, showMeter, store } from './common.js';
 import { ACTIVITY, connectorsOf, joinWords, suggestionsOf } from './connectors.js';
 import { render } from './md.js';
+import { splitMessages } from './turn.js';
 
 // The chat page. A chat is a Copilot session on the server; this page lists them, shows one by turns
 // with the model calls and tool calls behind each answer, and follows the running one through /api/stream.
@@ -25,6 +26,8 @@ let current = null;
 let streaming = '';
 let flash = null;
 let sending = false;
+// Set when the reader sends or opens a chat: the next redraw shows the end of the thread, wherever they had scrolled.
+let jump = false;
 // Work panels the reader opened stay open while the thread redraws.
 const openWork = new Set();
 const NARROW = matchMedia('(max-width: 560px)');
@@ -143,7 +146,8 @@ function nearBottom() {
 }
 
 function renderThread() {
-  const stick = nearBottom();
+  const stick = jump || nearBottom();
+  jump = false;
   const banner = flash ? `<div class="banner">${esc(flash)}</div>` : '';
   if (current) {
     const { chat } = current;
@@ -198,20 +202,17 @@ function threadHtml() {
 
 function turnHtml(n, t, live) {
   const user = t.events.find((e) => e.kind === 'user');
-  const answers = t.events.filter((e) => e.kind === 'assistant');
-  const final = live ? null : answers.at(-1);
-  const notes = live ? answers : answers.slice(0, -1);
+  const { notes, answer } = splitMessages(t.events.filter((e) => e.kind === 'assistant'), live);
   let html = user ? `<div class="msg user"><div class="bubble">${esc(user.text)}</div></div>` : '';
   html += '<div class="msg assistant">';
   if (t.calls.length || t.tools.length) html += workHtml(n, t, notes, live);
+  html += answer.map((e) => `<div class="answer">${render(e.text)}</div>`).join('');
   if (live) {
     const pending = [...t.tools].reverse().find((x) => x.success == null && !x.refused);
     const doing = current.chat.status === 'stopping' ? 'Stopping' : pending
       ? (ACTIVITY[pending.name] ?? (() => `Running ${pending.name}`))(args(pending)) : streaming ? 'Writing' : 'Thinking';
     html += `<div class="activity"><span class="spinner"></span>${esc(doing)}…</div>`;
     if (streaming) html += `<div class="answer live" id="streaming">${render(streaming)}</div>`;
-  } else if (final) {
-    html += `<div class="answer">${render(final.text)}</div>`;
   }
   for (const e of t.events.filter((x) => x.kind === 'error' || x.kind === 'stopped')) {
     html += `<div class="turn-error">${esc(e.kind === 'stopped' ? 'Stopped.' : e.text)}</div>`;
@@ -306,6 +307,7 @@ async function submit(e) {
   if (!text || ui.send.disabled) return;
   const s = settings();
   sending = true;
+  jump = true;
   flash = null;
   syncComposer();
   try {
@@ -360,6 +362,7 @@ function listen() {
 async function route() {
   currentId = idFromHash();
   streaming = '';
+  jump = true;
   flash = null;
   toggleHistory(false);
   await Promise.all([loadThread(), loadChats()]);
