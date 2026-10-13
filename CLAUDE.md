@@ -22,7 +22,7 @@ for anything that writes, so a test never touches a real setup.
   own MCP server, `pilotkit-<id>`, registered on its own; it brings its setup step, doctor check,
   credential removal, desk guide lines and `serve()`. `config.connectors` lists the ones added.
 - `src/atlassian/`: `client.mjs` (GET-only REST client, hints per status), `text.mjs` (ADF and
-  storage XHTML to short text), `tools.mjs` (the seven tools), `mcp.mjs` (stdio server).
+  storage XHTML to short text), `tools.mjs` (the eight tools), `mcp.mjs` (stdio server).
 - `src/salesforce/`: `sf.mjs` (runs the Salesforce CLI: read commands only, safe arguments, `--json`),
   `soql.mjs` (SELECT/FIND checks, the LIMIT it adds), `text.mjs` (records and describes to short
   text), `client.mjs` (the org allowlist; queries go to `sf` in a temp file), `tools.mjs`, `mcp.mjs`.

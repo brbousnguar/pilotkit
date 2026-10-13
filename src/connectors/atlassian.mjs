@@ -89,7 +89,7 @@ export const atlassian = {
   desk: (config) => ({
     about: 'their Jira issues and Confluence pages',
     read: `Use the pilotkit-atlassian tools to read ${config.atlassian.site ? `the Atlassian site ${config.atlassian.site}` : 'Atlassian'}; they cannot change a ticket or a page.`,
-    economy: 'prefer jira_my_issues and jira_search with a small "max"; read a page or issue only when the question needs it',
+    economy: 'prefer jira_my_issues and jira_search with a small "max"; for who changed what, one jira_issue_history call with a JQL query beats reading issue after issue; read a page or issue only when the question needs it',
     links: 'issue and page',
   }),
 

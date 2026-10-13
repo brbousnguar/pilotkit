@@ -40,11 +40,11 @@ pilotkit start    # open the desk: chat about your tickets and pages, with the c
 ```
 
 - **One setup command** walks through four steps: GitHub Copilot sign-in (installing the Copilot CLI if needed), the Atlassian site, email and API token (checked against Jira before anything is saved), registration in the Copilot CLI and every VS Code install, and what to do next.
-- **Read-only connectors, one MCP server per system.** Jira and Confluence Cloud come first: `pilotkit-atlassian`, seven tools that read with the user's own account, so they see what the user could see in a browser and cannot change a ticket or a page. Each system someone adds is its own server, so Copilot only carries the tools of the systems their job needs.
+- **Read-only connectors, one MCP server per system.** Jira and Confluence Cloud come first: `pilotkit-atlassian`, eight tools that read with the user's own account, so they see what the user could see in a browser and cannot change a ticket or a page. Each system someone adds is its own server, so Copilot only carries the tools of the systems their job needs.
 - **The desk**, a chat page on `127.0.0.1`. It runs Copilot through the official [GitHub Copilot SDK](https://github.com/github/copilot-sdk), records each model call with the credits Copilot reports for it, and shows the cost under every answer, per day and per model.
 - **Brand packs**: the public package is neutral, and a team applies its own name, logo and colour with one command, without forking.
 
-Questions that work well: *"What are my open Jira issues, by priority?"*, *"Summarize KEY-123 and its last comments"*, *"Find the Confluence page about the release process and list its steps"*, *"Draft a stand-up update from my issues in progress"*.
+Questions that work well: *"What are my open Jira issues, by priority?"*, *"What changed in project KEY this week, and who changed it?"*, *"Summarize KEY-123 and its last comments"*, *"Find the Confluence page about the release process and list its steps"*, *"Draft a stand-up update from my issues in progress"*.
 
 ## Requirements
 
@@ -139,7 +139,7 @@ The allowance comes from `account.getQuota`. It counts every Copilot client on t
 
 ## Tools
 
-All seven tools are read-only (`readOnlyHint: true`) and return compact Markdown: Atlassian rich text (ADF in Jira, storage XHTML in Confluence) is turned into short text before it reaches the model, because every character a tool returns is re-sent, and billed, with each later model call.
+All eight tools are read-only (`readOnlyHint: true`) and return compact Markdown: Atlassian rich text (ADF in Jira, storage XHTML in Confluence) is turned into short text before it reaches the model, because every character a tool returns is re-sent, and billed, with each later model call.
 
 | Tool | Arguments | Returns |
 |---|---|---|
@@ -147,9 +147,12 @@ All seven tools are read-only (`readOnlyHint: true`) and return compact Markdown
 | `jira_my_issues` | `include_done?`, `max?` (1–50, default 20) | Issues assigned to the user, most recently updated first, open ones by default |
 | `jira_search` | `jql`, `max?`, `nextPageToken?` | Issues matching a JQL query, with a token for the next page |
 | `jira_get_issue` | `key`, `comments?` (0–20, default 5), `max_chars?` | Status, people, sprint, description, latest comments, links and sub-tasks |
+| `jira_issue_history` | `key` or `jql`, `since?` (`-7d`, `-24h`, `-2w` or a date), `fields?`, `max?` (1–25 issues, default 10), `per_issue?` (default 10) | Who changed what and when, newest first: one line per change (field: from → to), and for a query the number of changes per person. Jira returns the latest 100 changes per issue |
 | `jira_list_projects` | `query?` | Projects the user can see, with their keys |
 | `confluence_search` | `query?` or `cql?`, `space?`, `max?` (1–25) | Pages and blog posts: title, space, last update, link and an excerpt |
 | `confluence_get_page` | `page` (id or link), `max_chars?` | A page as text |
+
+`jira_issue_history` reads Jira's changelog through the same `GET` searches (`expand=changelog`), so one call answers *who changed what* for up to 25 issues.
 
 Atlassian errors come back as text with a hint: a `401` points at the token, a `403` at missing permissions, a `404` at a wrong key or a page the user cannot see, a `410` at an API Atlassian has retired. A `429` is retried after the `Retry-After` delay.
 
@@ -217,7 +220,7 @@ src/
   clients.mjs           registration in the Copilot CLI and VS Code (JSONC-safe)
   brand.mjs             brand pack validation, install, load
   connectors/           the connector catalogue; each connector's setup, check, desk lines and server
-  atlassian/            REST client, ADF and storage-format to text, the seven tools, the MCP server
+  atlassian/            REST client, ADF and storage-format to text, the eight tools, the MCP server
   cli/                  setup, add and remove, doctor and unlink, credits, terminal prompts
   desk/                 HTTP server, Copilot session runner, SQLite schema, month report, tool policy
 site/                   the desk: chat, credits and start pages, Markdown renderer, default logo, fonts
@@ -241,7 +244,8 @@ Checked on 2026-10-12 on macOS with Node 24, Copilot CLI 1.0.91 and a real Jira 
 
 | Part | Status |
 |---|---|
-| All seven MCP tools | Verified live, including the `404` hint |
+| The first seven MCP tools | Verified live, including the `404` hint |
+| `jira_issue_history` | Verified on 2026-10-13 against a local stand-in for Jira that returns the `changelog` shape of Jira's published API (one issue, a JQL query, the time and field filters), and in the desk: *"What changed in my open issues this week, and who changed it?"* took two tool calls and 0.15 credits. **Not yet checked against a live site** |
 | Desk: new chat, streaming, follow-up in the same session, credits per call | Verified live in Chromium (desktop, 390 px and 320 px) |
 | Credits page, brand pack, Host and header guards, path traversal | Verified live |
 | macOS Keychain token | Verified |
