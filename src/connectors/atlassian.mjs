@@ -28,7 +28,8 @@ export const atlassian = {
 
     let token = process.env.PILOTKIT_ATLASSIAN_TOKEN?.trim() || null;
     const saved = token ? null : readToken(email);
-    if (!token && saved && config.atlassian.site === site && !opts.newToken && await confirm('Keep the API token saved on this PC?')) token = saved;
+    const same = config.atlassian.site === site && config.atlassian.email === email;
+    if (!token && saved && same && !opts.newToken && await confirm('Keep the API token saved on this PC?')) token = saved;
     let me = null;
     for (let attempt = 1; attempt <= 3 && !me; attempt++) {
       if (!token) {
@@ -39,7 +40,7 @@ export const atlassian = {
       try {
         me = await createAtlassian({ site, email, token }).myself();
       } catch (err) {
-        bad(err.message);
+        bad(err.status === 401 ? 'Atlassian refused this email and token: check both, or create a new token.' : err.message);
         if (err.status !== 401 || process.env.PILOTKIT_ATLASSIAN_TOKEN) throw new Error('could not reach Atlassian with these details');
         token = null;
       }
@@ -47,6 +48,8 @@ export const atlassian = {
     if (!me) throw new Error('Atlassian refused the token three times');
     ok(`Signed in to ${site} as ${bold(me.displayName)}`);
     if (!process.env.PILOTKIT_ATLASSIAN_TOKEN) {
+      // Another account: its token goes, or remove and unlink would leave it behind.
+      if (config.atlassian.email && config.atlassian.email !== email) deleteToken(config.atlassian.email);
       saveToken(email, token);
       ok(`Token saved in ${storeName()}`);
     }
@@ -63,6 +66,9 @@ export const atlassian = {
       const me = await createAtlassian({ site, email, token }).myself();
       return { ok: true, message: `Atlassian ${site}: ${me.displayName}` };
     } catch (err) {
+      if (err.status === 401) {
+        return { ok: false, message: `Atlassian ${site} refused the email and token`, fix: 'The token expired or was revoked: run "pilotkit add atlassian --new-token".' };
+      }
       return { ok: false, message: `Atlassian ${site}: ${err.message}` };
     }
   },
