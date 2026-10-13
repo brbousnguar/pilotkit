@@ -10,7 +10,8 @@ export const DEFAULT_BRAND = {
   name: 'pilotkit',
   product: 'pilotkit desk',
   accent: '#a4471f',
-  welcome: 'Ask about your Jira tickets and Confluence pages. Every answer shows the AI credits it cost.',
+  // null: the desk writes it from the connectors this PC added.
+  welcome: null,
   atlassianSite: null,
   links: [],
   logoFile: join(PKG_DIR, 'site', 'pilotkit.svg'),

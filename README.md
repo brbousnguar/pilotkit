@@ -125,7 +125,9 @@ A connector is one system pilotkit can read, with its own MCP server named `pilo
 
 - **Chat.** One Copilot session per chat, resumed for follow-ups, with the list of chats on the left (a drawer on phones). While Copilot works, a line says what it is doing ("Searching Jira", "Reading a Confluence page"); the answer streams in as Markdown with links to every issue and page. Above each answer, a line gives its model calls, tool calls and credits; it opens on a timeline, in order, of each model call (model, input tokens, tokens served from cache, output tokens, time, credits) and each tool call (its argument, roughly how many tokens it returned, time). The model and the credit cap for new chats are in the settings menu.
 - **Credits.** The Copilot month: credits used against the monthly allowance, the pace against an even plan, today against the daily plan, credits left per day, and where the month ends at this rate. A bar per day splits this desk from the rest of the account's Copilot use, a line follows the month against the plan, and a habits section breaks the desk's own credits down by model, by chat and by prompt cache, with a few plain tips to spend less.
-- **Start here.** The state of this PC (Copilot account, Atlassian site) and how to use the tools in each client.
+- **Start here.** The state of this PC: the Copilot account, then each connected system checked live (the same check as `pilotkit doctor`, with the command that fixes it), and how to use the tools in each client.
+
+The pages follow the connectors this PC added: one chat answers from all of them, and its suggestions, examples and wording name only those systems. The desk only shows connections; anything that changes a credential runs in the terminal.
 
 ### How credits are counted
 
@@ -172,7 +174,7 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 }
 ```
 
-`name` and `logo` (an `.svg` or `.png` next to `brand.json`, 512 KB at most) are required. `atlassianSite` pre-fills the site question in setup; `links` (https only, six at most) appear under the welcome text. The pack is checked and copied into `~/.pilotkit/brand`. See [`examples/brand-acme`](examples/brand-acme) for a complete, fictional one.
+`name` and `logo` (an `.svg` or `.png` next to `brand.json`, 512 KB at most) are required. `welcome` is optional: without it the desk names the systems this PC connected. `atlassianSite` pre-fills the site question in setup; `links` (https only, six at most) appear under the welcome text. The pack is checked and copied into `~/.pilotkit/brand`. See [`examples/brand-acme`](examples/brand-acme) for a complete, fictional one.
 
 **Keep your company's marks in your own pack.** A logo is a trademark: share the pack inside the company (a folder on a share, an intranet URL) and leave pilotkit itself neutral.
 

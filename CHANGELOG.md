@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- The desk follows the connectors this PC added: the chat's suggestions, activity lines, placeholder and settings, and the Start page's heading, examples, server names and rules, name only those systems. The Start page checks each connection live, with the command that fixes it, and shows the account's name instead of its email. A brand pack's `welcome` is optional (#25)
+
 ### Fixed
 - When Atlassian refuses the token (expired or revoked), `pilotkit doctor` and the tools' errors say to run `pilotkit add atlassian --new-token` (#23)
 - Switching the Atlassian email deletes the previous account's token from the Keychain or the Secret Service, and setup no longer offers to keep a token saved for another account, which on Windows it did (#23)

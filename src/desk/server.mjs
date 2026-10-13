@@ -55,6 +55,20 @@ export async function startDesk({ port: wantedPort, open = true, log = console.l
   const stopSnapshots = startSnapshots(db, () => runner.quota());
   const hosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
 
+  // Each connector's doctor check, for the Start page. Kept 30 s, so reloading the page does not
+  // call Atlassian or Salesforce again.
+  let checked = null;
+  const connections = async () => {
+    if (checked && Date.now() - checked.at < 30_000) return checked.list;
+    const list = await Promise.all(addedConnectors(config).map(async (c) => {
+      const timeout = new Promise((resolve) => setTimeout(resolve, 20_000, { ok: false, message: `${c.title} did not answer within 20 s` }).unref());
+      const res = await Promise.race([c.check(config).catch((err) => ({ ok: false, message: err.message })), timeout]);
+      return { id: c.id, title: c.title, ok: res.ok, message: res.message, fix: res.fix ?? null, account: res.account ?? null };
+    }));
+    checked = { at: Date.now(), list };
+    return list;
+  };
+
   const api = async (req, res, path) => {
     const method = req.method;
     // Only this page may spend credits: a write needs a header a cross-site form or image cannot send.
@@ -65,12 +79,12 @@ export async function startDesk({ port: wantedPort, open = true, log = console.l
         version: VERSION,
         brand: { name: brand.name, product: brand.product, accent: brand.accent, welcome: brand.welcome, links: brand.links, custom: brand.custom },
         copilot: { authenticated: Boolean(runner.auth?.isAuthenticated), login: runner.auth?.login ?? null, message: runner.auth?.statusMessage ?? null },
-        connectors: addedConnectors(config).map((c) => ({ id: c.id, title: c.title, server: c.server })),
-        atlassian: { site: config.atlassian.site, email: config.atlassian.email },
+        connectors: addedConnectors(config).map((c) => ({ id: c.id, title: c.title, server: c.server, ...c.summary(config) })),
         models: runner.modelList(),
         defaults: { model: config.desk.model, maxCredits: Math.max(MIN_CREDITS, config.desk.maxCredits), minCredits: MIN_CREDITS },
       });
     }
+    if (path === '/api/connections' && method === 'GET') return send(res, 200, await connections());
     if (path === '/api/chats' && method === 'GET') {
       return send(res, 200, db.prepare(`SELECT id, title, model, status, started_at, ended_at, turns, credits FROM chats
         WHERE archived_at IS NULL ORDER BY started_at DESC LIMIT 200`).all());

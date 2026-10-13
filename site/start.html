@@ -21,8 +21,8 @@
 
   <main class="page">
     <span class="eyebrow">Start here</span>
-    <h1>Your Copilot can read Jira and Confluence</h1>
-    <p class="lede"><code>pilotkit setup</code> connected your GitHub Copilot seat to your Jira issues and Confluence pages once, on this PC. Here are the four places you can now ask.</p>
+    <h1>Your Copilot can read <span id="reads">your work tools</span></h1>
+    <p class="lede"><code>pilotkit setup</code> connected your GitHub Copilot seat to <span id="reads-lede">the systems you added</span> once, on this PC. Here are the four places you can now ask.</p>
 
     <div class="card status-card" id="status"><span class="muted">Checking this PC…</span></div>
 
@@ -35,41 +35,33 @@
       </li>
       <li class="card">
         <h3>VS Code, in Copilot Chat</h3>
-        <p>Open Copilot Chat (<code>Ctrl+Alt+I</code>, <code>⌃⌘I</code> on a Mac), switch the mode to <strong>Agent</strong>, then click the tools icon: <strong>pilotkit-atlassian</strong> is in the list. The first time, VS Code asks you to trust and start the server; say yes.</p>
-        <p>Name the source when it helps: <em>"Use pilotkit to list my open Jira issues."</em></p>
+        <p>Open Copilot Chat (<code>Ctrl+Alt+I</code>, <code>⌃⌘I</code> on a Mac), switch the mode to <strong>Agent</strong>, then click the tools icon: <strong id="servers">the pilotkit servers</strong> <span id="servers-verb">are</span> in the list. The first time, VS Code asks you to trust and start each server; say yes.</p>
+        <p>Name the source when it helps: <em id="vscode-example">"Use pilotkit to list my open Jira issues."</em></p>
       </li>
       <li class="card">
         <h3>The terminal, with the Copilot CLI</h3>
         <p>Run <code>copilot</code> in any folder and ask. Copilot asks before each tool call; allow the pilotkit tools for the session. For a single question, allow them up front (they only read):</p>
-        <pre><code>copilot -p "Summarize the Jira issue KEY-123" --allow-tool=pilotkit-atlassian</code></pre>
+        <pre><code id="cli-example">copilot -p "Summarize the Jira issue KEY-123" --allow-tool=pilotkit-atlassian</code></pre>
       </li>
       <li class="card">
         <h3>The GitHub Copilot app</h3>
-        <p><code>copilot app</code> opens it. If pilotkit-atlassian is not in its tool list, add an MCP server there with the command <code>pilotkit mcp atlassian</code>.</p>
+        <p><code>copilot app</code> opens it. If a pilotkit server is not in its tool list, add an MCP server there with the command <code id="app-example">pilotkit mcp atlassian</code>.</p>
       </li>
     </ol>
 
     <h2>Questions that work well</h2>
-    <ul class="chips">
-      <li>What are my open Jira issues, by priority?</li>
-      <li>Which issues in project KEY changed this week, and who changed them?</li>
-      <li>Summarize KEY-123: the problem, what was tried, and what is still open.</li>
-      <li>Find the Confluence page about the deployment process and list its steps.</li>
-      <li>Draft a comment for KEY-123 asking for the missing test data. (pilotkit only reads: you paste the comment yourself.)</li>
-    </ul>
+    <div class="examples" id="examples"></div>
 
     <h2>What pilotkit can and cannot do</h2>
     <div class="card">
-      <ul class="rules">
-        <li>It <strong>reads</strong> Jira and Confluence with your own Atlassian account: you see what you could see in the browser, nothing more.</li>
-        <li>It <strong>never writes</strong>: no comment, transition or page edit. Ask for a draft and paste it.</li>
-        <li>Your Atlassian API token stays protected on this PC: in the macOS Keychain, in a file only your Windows account can decrypt (DPAPI), or in the Linux Secret Service. Never in a config file.</li>
+      <ul class="rules" id="rules">
+        <li>It <strong>never writes</strong>: no comment, update or edit in any system. Ask for a draft and paste it yourself.</li>
         <li>The desk only answers on <code>127.0.0.1</code>: nobody else on the network can reach it.</li>
       </ul>
     </div>
 
     <h2>When something is off</h2>
-    <p class="muted"><code>pilotkit doctor</code> checks Copilot, Atlassian and both registrations, and says what to run. <code>pilotkit setup</code> again fixes most things; <code>pilotkit add atlassian --new-token</code> replaces an expired or revoked Atlassian token. Atlassian API tokens are created at <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener noreferrer">id.atlassian.com → Security → API tokens</a>.</p>
+    <p class="muted"><code>pilotkit doctor</code> checks Copilot, every connected system and both registrations, and says what to run. <code>pilotkit setup</code> again fixes most things. <span id="fixes"></span></p>
   </main>
 </body>
 </html>

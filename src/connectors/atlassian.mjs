@@ -64,7 +64,7 @@ export const atlassian = {
     if (!token) return { ok: false, message: `No Atlassian token in ${storeName()}`, fix: 'Run "pilotkit add atlassian" to enter one.' };
     try {
       const me = await createAtlassian({ site, email, token }).myself();
-      return { ok: true, message: `Atlassian ${site}: ${me.displayName}` };
+      return { ok: true, message: `Atlassian ${site}: ${me.displayName}`, account: me.displayName };
     } catch (err) {
       if (err.status === 401) {
         return { ok: false, message: `Atlassian ${site} refused the email and token`, fix: 'The token expired or was revoked: run "pilotkit add atlassian --new-token".' };
@@ -77,6 +77,12 @@ export const atlassian = {
     deleteToken(config.atlassian.email);
     return 'Atlassian token deleted';
   },
+
+  // Where it reads, from config.json alone (no network): the desk pages show it.
+  summary: (config) => ({
+    where: config.atlassian.site ? config.atlassian.site.replace(/^https:\/\//, '') : null,
+    link: config.atlassian.site,
+  }),
 
   // The desk's lines about this connector.
   desk: (config) => ({

@@ -1,32 +1,15 @@
 import { $, api, esc, fmtCredits, fmtMs, fmtTokens, loadShell, showMeter, store } from './common.js';
+import { ACTIVITY, connectorsOf, joinWords, suggestionsOf } from './connectors.js';
 import { render } from './md.js';
 
 // The chat page. A chat is a Copilot session on the server; this page lists them, shows one by turns
 // with the model calls and tool calls behind each answer, and follows the running one through /api/stream.
 
-const SUGGESTIONS = [
-  ['What are my open Jira issues, by priority?', 'Status, priority and due date in one table', true],
-  ['Which of my issues changed in the last 7 days?', 'What moved, newest first', true],
-  ['Summarize the Jira issue ', 'Type the key: the problem, what was tried, what is left', false],
-  ['Find the Confluence pages about onboarding', 'Titles, spaces and links', true],
-  ['Draft a stand-up update from my issues in progress', 'Yesterday, today, blockers', true],
-  ['Which Jira projects can I see?', 'Their keys, to ask about one of them', true],
-];
 const SEND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
 const STOP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
 const ARCHIVE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="4" rx="1"/><path d="M5.5 8.5v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-10M10 12.5h4"/></svg>';
 const STATUS = { running: 'working', stopping: 'stopping', ready: 'ready', failed: 'failed' };
 
-// What the assistant is doing, from the tool it is waiting on.
-const ACTIVITY = {
-  whoami: () => 'Checking your Atlassian account',
-  jira_my_issues: () => 'Loading your Jira issues',
-  jira_search: () => 'Searching Jira',
-  jira_get_issue: (a) => `Reading Jira ${a.key ?? 'issue'}`,
-  jira_list_projects: () => 'Listing the Jira projects',
-  confluence_search: () => 'Searching Confluence',
-  confluence_get_page: () => 'Reading a Confluence page',
-};
 
 const ui = {
   list: $('#chat-list'), messages: $('#messages'), head: $('#chat-head'), form: $('#composer'), prompt: $('#prompt'),
@@ -34,6 +17,8 @@ const ui = {
   gear: $('#gear'), settings: $('#settings'),
 };
 let state = null;
+let connectors = [];
+let suggestions = [];
 let chats = [];
 let currentId = null;
 let current = null;
@@ -87,7 +72,7 @@ function renderSettings() {
       <span class="hint">credits (Copilot's minimum is ${state.defaults.minCredits}). A chat keeps the cap it started with.</span></label>
     <div class="who">
       <span>Copilot: <b id="login">${esc(state.copilot.authenticated ? state.copilot.login ?? 'signed in' : 'not signed in')}</b></span>
-      <span>Atlassian: <b>${esc(state.atlassian.site ? state.atlassian.site.replace(/^https:\/\//, '') : 'not set up')}</b></span>
+      ${connectors.map((c) => `<span>${esc(c.title)}: <b>${esc(c.where ?? 'not set up')}</b></span>`).join('')}
       <span>pilotkit ${esc(state.version)}</span>
     </div>`;
   $('#set-model').addEventListener('change', (e) => { store.set('model', e.target.value); syncComposer(); });
@@ -179,17 +164,22 @@ function renderThread() {
   if (stick || !current) ui.messages.scrollTop = current ? ui.messages.scrollHeight : 0;
 }
 
+function defaultWelcome() {
+  const about = joinWords(connectors.flatMap((c) => c.ui.long), 'and');
+  return `${about ? `Ask about ${about}. ` : ''}Every answer shows the AI credits it cost.`;
+}
+
 function welcomeHtml() {
   const b = state.brand;
   const warn = [];
   if (!state.copilot.authenticated) warn.push('Copilot is not signed in on this PC. Run <code>pilotkit setup</code> in a terminal, then reopen the desk.');
-  if (!state.atlassian.site) warn.push('Atlassian is not set up yet. Run <code>pilotkit setup</code> in a terminal.');
+  if (!connectors.length) warn.push('No system is connected yet. Run <code>pilotkit setup</code> in a terminal.');
   return `
     <section class="welcome">
       ${warn.map((w) => `<div class="banner">${w}</div>`).join('')}
       <h1>What do you want to know?</h1>
-      <p>${esc(b.welcome)} Under each answer you see every model call and tool call behind it.</p>
-      <div class="suggest">${SUGGESTIONS.map(([q, sub], i) => `<button type="button" data-suggest="${i}">${esc(q.trim())}<span>${esc(sub)}</span></button>`).join('')}</div>
+      <p>${esc(b.welcome ?? defaultWelcome())} Under each answer you see every model call and tool call behind it.</p>
+      <div class="suggest">${suggestions.map(([q, sub], i) => `<button type="button" data-suggest="${i}">${esc(q.trim())}<span>${esc(sub)}</span></button>`).join('')}</div>
       ${b.links?.length ? `<p class="links">${b.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)}</a>`).join(' · ')}</p>` : ''}
     </section>`;
 }
@@ -299,7 +289,8 @@ function syncComposer() {
   ui.send.setAttribute('aria-label', busy ? 'Stop' : 'Send');
   ui.send.innerHTML = busy ? STOP_ICON : SEND_ICON;
   ui.send.disabled = busy ? chat.status === 'stopping' : !state.copilot.authenticated || sending || !ui.prompt.value.trim();
-  ui.prompt.placeholder = chat ? 'Ask a follow-up…' : TINY.matches ? 'Ask a question…' : NARROW.matches ? 'Ask about Jira or Confluence…' : 'Ask about your Jira issues or Confluence pages…';
+  const about = (key) => joinWords(connectors.flatMap((c) => c.ui[key]));
+  ui.prompt.placeholder = chat ? 'Ask a follow-up…' : TINY.matches || !connectors.length ? 'Ask a question…' : `Ask about ${about(NARROW.matches ? 'short' : 'long')}…`;
   ui.hint.innerHTML = `<span class="wide-only">Enter to send · Shift+Enter for a new line</span>${chat
     ? `<span>Next message: ${esc(modelName(s.model))}</span>`
     : `<span>New chat: ${esc(modelName(s.model))} · stops after ${s.cap} credits</span>`}`;
@@ -377,6 +368,8 @@ async function route() {
 
 async function main() {
   state = await loadShell();
+  connectors = connectorsOf(state);
+  suggestions = suggestionsOf(connectors);
   ui.form.addEventListener('submit', submit);
   ui.prompt.addEventListener('input', () => { autosize(); syncComposer(); });
   ui.prompt.addEventListener('keydown', (e) => {
@@ -411,7 +404,7 @@ async function main() {
   ui.messages.addEventListener('click', (e) => {
     const b = e.target.closest('[data-suggest]');
     if (!b) return;
-    const [q, , send] = SUGGESTIONS[b.dataset.suggest];
+    const [q, , send] = suggestions[b.dataset.suggest];
     ui.prompt.value = q;
     autosize();
     syncComposer();

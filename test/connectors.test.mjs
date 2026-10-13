@@ -16,7 +16,7 @@ const brand = { product: 'pilotkit desk' };
 test('every connector has a server named pilotkit-<id> and the parts the CLI and the desk use', () => {
   for (const c of CONNECTORS) {
     assert.equal(c.server, `pilotkit-${c.id}`);
-    for (const fn of ['configured', 'setup', 'check', 'forget', 'desk', 'serve']) assert.equal(typeof c[fn], 'function', `${c.id}.${fn}`);
+    for (const fn of ['configured', 'setup', 'check', 'forget', 'summary', 'desk', 'serve']) assert.equal(typeof c[fn], 'function', `${c.id}.${fn}`);
     assert.ok(c.tools.length > 0 && c.tools.length < 20, `${c.id} keeps its tool list short`);
   }
   assert.throws(() => findConnector('nope'), /not a pilotkit connector\. Connectors: atlassian/);
@@ -57,6 +57,7 @@ test('the desk starts one server per added connector and names its tools in the 
   assert.match(guide, /their Jira issues and Confluence pages/);
   assert.match(guide, /pilotkit-atlassian tools to read the Atlassian site https:\/\/acme\.atlassian\.net/);
   assert.match(guide, /Link every issue and page you mention/);
+  assert.deepEqual(connectors[0].summary(config), { where: 'acme.atlassian.net', link: 'https://acme.atlassian.net' });
   const none = deskGuide({ brand, connectors: [], config });
   assert.doesNotMatch(none, /Atlassian|Link every/);
 });
