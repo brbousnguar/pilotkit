@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 - When Atlassian refuses the token (expired or revoked), `pilotkit doctor` and the tools' errors say to run `pilotkit add atlassian --new-token` (#23)
 - Switching the Atlassian email deletes the previous account's token from the Keychain or the Secret Service, and setup no longer offers to keep a token saved for another account, which on Windows it did (#23)
+- The desk shows the end of the thread when you send a message or open a chat, even if you had scrolled up (#33)
+- The desk no longer folds part of an answer into the work panel: when a model writes the answer (a table, say) and then a short closing line, both show as answer. Only short one-line messages stay notes on the work (#33)
 
 ## [0.3.0] - 2026-10-13
 
