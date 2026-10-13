@@ -3,7 +3,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { loadBrand, logoType } from '../brand.mjs';
-import { PKG_DIR, VERSION, ensureHome, loadConfig, paths } from '../config.mjs';
+import { IN_CONTAINER, PKG_DIR, VERSION, ensureHome, loadConfig, paths } from '../config.mjs';
 import { addedConnectors } from '../connectors/index.mjs';
 import { openDb } from './db.mjs';
 import { monthReport, saveSnapshot, startSnapshots } from './month.mjs';
@@ -12,6 +12,9 @@ import { MIN_CREDITS, Runner } from './runner.mjs';
 const SITE = join(PKG_DIR, 'site');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8' };
 const PAGES = { '/': 'index.html', '/credits': 'credits.html', '/start': 'start.html' };
+// In a container, 127.0.0.1 is the container's own loopback: the desk listens on the container's network and
+// compose publishes the port on the PC's 127.0.0.1 only (docker/compose.yaml). The Host check below still applies.
+const BIND = IN_CONTAINER ? '0.0.0.0' : '127.0.0.1';
 const CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
@@ -159,12 +162,12 @@ export async function startDesk({ port: wantedPort, open = true, log = console.l
     server.once('error', (err) => reject(err.code === 'EADDRINUSE'
       ? new Error(`port ${port} is taken: is the desk already open? Try http://127.0.0.1:${port}/ or "pilotkit start --port <another>".`)
       : err));
-    server.listen(port, '127.0.0.1', resolve);
+    server.listen(port, BIND, resolve);
   });
   const url = `http://127.0.0.1:${port}/`;
   log(`${brand.product} is open on ${url}  (Ctrl+C to close it)`);
-  if (!runner.auth?.isAuthenticated) log('Copilot is not signed in: the desk shows your history, but run "pilotkit setup" to ask questions.');
-  if (open) openBrowser(url);
+  if (!runner.auth?.isAuthenticated) log(`Copilot is not signed in: the desk shows your history, but run "pilotkit ${IN_CONTAINER ? 'container setup' : 'setup'}" to ask questions.`);
+  if (open && !IN_CONTAINER) openBrowser(url);
 
   const close = async () => {
     stopSnapshots();

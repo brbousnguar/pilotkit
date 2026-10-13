@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `pilotkit container setup|up|down|status|logs|run`: the desk in a container, with Docker or Podman. The container:
+  - runs as an unprivileged user, on a read-only filesystem, with no Linux capabilities and capped memory and processes;
+  - mounts no folder of the PC, keeping its settings, history, Atlassian token and Copilot login in one volume;
+  - answers on the PC's `127.0.0.1` only.
+
+  Setup and doctor inside the container leave the PC's Copilot CLI and VS Code alone (#37)
+
 ## [0.4.0] - 2026-10-13
 
 ### Added

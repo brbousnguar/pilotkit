@@ -10,6 +10,8 @@ export const PKG_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const BIN = join(PKG_DIR, 'bin', 'pilotkit.mjs');
 export const VERSION = JSON.parse(readFileSync(join(PKG_DIR, 'package.json'), 'utf8')).version;
 export const DEFAULT_PORT = 8717;
+// Set by the image in docker/: the desk runs in a container, and the Copilot clients live on the PC outside it.
+export const IN_CONTAINER = process.env.PILOTKIT_CONTAINER === '1';
 
 export const paths = {
   config: join(HOME, 'config.json'),

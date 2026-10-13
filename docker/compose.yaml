@@ -1,0 +1,33 @@
+# The pilotkit desk in a container: "pilotkit container setup", then "pilotkit container up".
+# It answers on http://127.0.0.1:8717/ of this PC only, like "pilotkit start".
+name: pilotkit
+
+services:
+  desk:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: pilotkit-desk:local
+    init: true
+    command: ["pilotkit", "start", "--no-open", "--port", "${PILOTKIT_PORT:-8717}"]
+    environment:
+      PILOTKIT_PORT: "${PILOTKIT_PORT:-8717}"
+    ports:
+      # The PC's loopback only: nothing else on the network reaches the desk.
+      - "127.0.0.1:${PILOTKIT_PORT:-8717}:${PILOTKIT_PORT:-8717}"
+    volumes:
+      # Settings, chat history, the Atlassian token and the Copilot login. No folder of the PC is mounted.
+      - home:/home/node
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 256
+    restart: unless-stopped
+
+volumes:
+  home:
