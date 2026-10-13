@@ -34,6 +34,9 @@ for anything that writes, so a test never touches a real setup.
   (0.2's `pilotkit`). `serverLaunch(id)` decides the command clients run.
 - `src/secrets.mjs`: the Atlassian token in the macOS Keychain, a DPAPI file on Windows, or the
   Secret Service on Linux. `PILOTKIT_ATLASSIAN_TOKEN` overrides.
+- `docker/`: the desk's image (Node 22 slim, pilotkit and the Copilot CLI, user `node`) and compose file (read-only,
+  no capabilities, one volume). `src/cli/container.mjs` wraps compose for `pilotkit container`; `PILOTKIT_CONTAINER=1`
+  (`IN_CONTAINER`) makes setup and doctor skip the PC's Copilot CLI and VS Code.
 - `src/desk/`: `server.mjs` (HTTP + SSE on 127.0.0.1), `runner.mjs` (one Copilot SDK session per
   chat, usage events to credits), `db.mjs` (SQLite schema, credit report for `pilotkit credits`),
   `month.mjs` (quota readings every 10 minutes and the Credits page's month report), `policy.mjs`.
@@ -53,7 +56,9 @@ for anything that writes, so a test never touches a real setup.
 - **Nothing company-specific in this repo**: no customer names, Atlassian sites, Salesforce orgs,
   project keys or logos. Companies brand pilotkit with a brand pack kept outside the repo (`examples/brand-acme`
   is fictional on purpose).
-- **The desk stays local**: bound to 127.0.0.1, Host checked, `X-Pilotkit: 1` on every write.
+- **The desk stays local**: bound to 127.0.0.1, Host checked, `X-Pilotkit: 1` on every write. In the
+  container (`docker/`, `IN_CONTAINER`) it binds the container's network and compose publishes the port on
+  the PC's 127.0.0.1 only; the Host check is unchanged. The container mounts no folder of the PC.
 - **Credits come from Copilot** (`assistant.usage` → `copilotUsage.totalNanoAiu / 1e9`); the
   price-based estimate is only a fallback and is marked `estimated`.
 - Tool output is compact on purpose: every character is re-sent, and billed, on each later call.

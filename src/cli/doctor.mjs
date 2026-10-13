@@ -3,7 +3,7 @@ import { createConnection } from 'node:net';
 import { loadBrand } from '../brand.mjs';
 import { copilotRegistered, copilotVersion, serverLaunch, vscodeEntry, vscodeUserDirs } from '../clients.mjs';
 import { CONNECTORS, addedConnectors, offeredConnectors } from '../connectors/index.mjs';
-import { HOME, VERSION, loadConfig, saveConfig } from '../config.mjs';
+import { HOME, IN_CONTAINER, VERSION, loadConfig, saveConfig } from '../config.mjs';
 import { copilotStatus, quotaLine } from './copilot.mjs';
 import { unregisterAll } from './setup.mjs';
 import { bad, bold, info, ok, warn } from './ui.mjs';
@@ -36,11 +36,11 @@ export async function doctor() {
     ok(`Copilot signed in as ${status.login ?? 'you'}`);
     const quota = quotaLine(status.quota);
     if (quota) info(quota);
-  } else fail(`Copilot not signed in${status.message ? ` (${status.message})` : ''}`, 'Run "copilot login", or "pilotkit setup".');
+  } else fail(`Copilot not signed in${status.message ? ` (${status.message})` : ''}`, IN_CONTAINER ? 'Run "pilotkit container setup" on the PC.' : 'Run "copilot login", or "pilotkit setup".');
 
   const connectors = addedConnectors(config);
-  if (!connectors.length) fail('No system is connected', `Run "pilotkit setup", or "pilotkit add <${offeredConnectors().map((c) => c.id).join('|')}>".`);
-  const dirs = vscodeUserDirs();
+  if (!connectors.length) fail('No system is connected', IN_CONTAINER ? 'Run "pilotkit container setup" on the PC.' : `Run "pilotkit setup", or "pilotkit add <${offeredConnectors().map((c) => c.id).join('|')}>".`);
+  const dirs = IN_CONTAINER ? [] : vscodeUserDirs();
   for (const c of connectors) {
     const res = await c.check(config);
     if (res.ok) ok(res.message);
@@ -48,7 +48,7 @@ export async function doctor() {
 
     const launch = serverLaunch(c.id);
     const oldName = (has) => c.replaces.find((name) => has(name));
-    if (cli) {
+    if (cli && !IN_CONTAINER) {
       const known = copilotRegistered(c.server);
       const old = known ? null : oldName(copilotRegistered);
       if (known) ok(`The Copilot CLI knows ${c.server}`);
@@ -72,7 +72,8 @@ export async function doctor() {
   }
 
   const port = config.desk.port;
-  if (await portOpen(port)) info(`Something listens on ${port}: the desk is open, or "pilotkit start --port <n>" picks another port.`);
+  if (IN_CONTAINER) info('In a container: the Copilot CLI and VS Code on your PC are checked by "pilotkit doctor" there.');
+  else if (await portOpen(port)) info(`Something listens on ${port}: the desk is open, or "pilotkit start --port <n>" picks another port.`);
   else ok(`Port ${port} is free for the desk`);
 
   console.log(failed ? `\n${failed} problem(s).` : '\nAll good.');

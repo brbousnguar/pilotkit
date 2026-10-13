@@ -3,7 +3,7 @@ import {
   copilotVersion, registerCopilot, registerVSCode, runTool, serverLaunch, unregisterCopilot, unregisterVSCode, vscodeUserDirs,
 } from '../clients.mjs';
 import { CONNECTORS, addedConnectors, findConnector, markAdded, markRemoved, offeredConnector } from '../connectors/index.mjs';
-import { DEFAULT_PORT, loadConfig, saveConfig } from '../config.mjs';
+import { DEFAULT_PORT, IN_CONTAINER, loadConfig, saveConfig } from '../config.mjs';
 import { copilotStatus, quotaLine } from './copilot.mjs';
 import { bad, bold, confirm, dim, info, ok, step, warn } from './ui.mjs';
 
@@ -46,7 +46,7 @@ export async function setup(opts) {
     if (quota) info(quota);
   } else {
     bad(`Copilot is not signed in${status.message ? `: ${status.message}` : ''}.`);
-    info('Run "copilot login" (or "gh auth login"), then "pilotkit setup" again.');
+    info(IN_CONTAINER ? 'Run "pilotkit container setup" again.' : 'Run "copilot login" (or "gh auth login"), then "pilotkit setup" again.');
   }
 
   // 2. Each connector: its account and credentials, checked before anything is saved.
@@ -60,13 +60,19 @@ export async function setup(opts) {
   config.desk.port = opts.port ?? config.desk.port ?? DEFAULT_PORT;
   saveConfig(config);
 
-  // 3. The clients: the Copilot CLI and VS Code.
+  // 3. The clients: the Copilot CLI and VS Code. A container has neither: they live on the PC.
   step(++n, total, 'Copilot clients');
   registerClients(connectors, { cli, opts });
 
   // 4. What to do next.
   step(++n, total, 'Ready');
   const port = config.desk.port;
+  if (IN_CONTAINER) {
+    console.log(`
+  ${bold('pilotkit container up')}   starts the ${brand.product} in its container, on http://127.0.0.1:${Number(process.env.PILOTKIT_PORT) || port}/ of this PC
+`);
+    return;
+  }
   console.log(`
   ${bold('pilotkit start')}   opens the ${brand.product} on http://127.0.0.1:${port}/
                    chat about ${connectors.map((c) => c.title).join(' and ')}, and see the AI credits of every answer
@@ -107,6 +113,10 @@ export async function remove(id) {
 }
 
 export function registerClients(connectors, { cli, opts }) {
+  if (IN_CONTAINER) {
+    info('In a container: the Copilot CLI and VS Code on your PC have their own setup ("pilotkit setup" on the PC).');
+    return;
+  }
   const dirs = opts.skipVscode ? [] : vscodeUserDirs();
   if (!dirs.length && !opts.skipVscode) info('VS Code not found on this PC: skipped.');
   let npxNoted = false;
@@ -141,6 +151,7 @@ export function registerClients(connectors, { cli, opts }) {
 
 // A connector's server and the old names it replaced, out of both clients.
 export function unregisterClients(c) {
+  if (IN_CONTAINER) return;
   for (const name of [c.server, ...c.replaces]) {
     if (unregisterCopilot(name)) ok(`Removed ${name} from the Copilot CLI`);
     for (const dir of vscodeUserDirs()) if (unregisterVSCode(dir, name)) ok(`Removed ${name} from VS Code (${dir})`);

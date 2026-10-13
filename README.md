@@ -137,6 +137,32 @@ Each chat has a credit cap (default 60, Copilot's minimum is 30), passed to Copi
 
 The allowance comes from `account.getQuota`. It counts every Copilot client on the account, and GitHub can take a while to update it. While it runs, the desk reads it every 10 minutes and keeps the readings, so it can split the month into days: the use before its first reading of the month is shown on that day, marked as such. Without a reading (not signed in, or an unlimited plan) the page shows this desk's own credits only.
 
+## Run the desk in a container
+
+The desk is the part of pilotkit that runs a model and calls tools. Its policy already refuses everything but the pilotkit read tools. A container adds a second wall: if a tool ever got through, it would find a throwaway Linux box, not your PC.
+
+You need Docker Desktop. Podman Desktop with `podman compose` should work too but is not tested yet. Docker Desktop is free for personal use and small companies; a company with more than 250 people or $10 million in revenue needs a paid subscription for it.
+
+```bash
+pilotkit container setup       # once: build the image, sign the container in to Copilot, connect Atlassian
+pilotkit container up          # start it on http://127.0.0.1:8717/ and open it (--port n, --no-open)
+pilotkit container status      # is it running
+pilotkit container logs -f     # what the desk says
+pilotkit container run doctor  # any pilotkit command, inside the container
+pilotkit container down        # stop it; chats and settings stay in its volume
+```
+
+- **What the container is allowed:**
+  - it runs as an unprivileged user, with every Linux capability dropped and `no-new-privileges`;
+  - its filesystem is read-only, with `/tmp` in memory;
+  - memory and processes are capped;
+  - no folder of your PC is mounted. One Docker volume, `pilotkit_home`, holds its settings, chat history, Atlassian token and Copilot login.
+- **Where it answers:** the port is published on your PC's `127.0.0.1` only, as with `pilotkit start`. Run one or the other on a given port.
+- **Setup inside the container:** it signs the container in to Copilot with a code (open the link on your PC), then asks for the Atlassian site, email and API token. A container has no Keychain or DPAPI, so the token sits in a `0600` file in the volume. Give the container its own token, so you can revoke it on its own.
+- **The rest of your PC:** the Copilot CLI and VS Code keep their own setup (`pilotkit setup`). They start `pilotkit mcp` on the PC, not in the container.
+- **Updating:** `pilotkit container up` rebuilds the image from the installed package, so `npm install -g pilotkit` followed by `up` updates it. From a clone of this repository: `docker compose -f docker/compose.yaml up -d --build`.
+- **Removing:** `pilotkit container down` keeps the volume. `docker volume rm pilotkit_home` deletes it, with the token and the Copilot login.
+
 ## Tools
 
 All eight tools are read-only (`readOnlyHint: true`) and return compact Markdown: Atlassian rich text (ADF in Jira, storage XHTML in Confluence) is turned into short text before it reaches the model, because every character a tool returns is re-sent, and billed, with each later model call.
@@ -184,9 +210,9 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 ## Security
 
 - **Read-only by construction.** The MCP server only sends `GET` requests to Atlassian. It has no tool that writes, comments or transitions; ask for a draft and paste it yourself.
-- **The token never lands in a config file.** It goes to the macOS Keychain (through `security -i` on stdin, never on a command line), to a DPAPI-protected file on Windows that only the same Windows user on the same PC can decrypt, or to the Linux Secret Service (a `0600` file when there is none). The MCP server reads it at start. `config.json` holds only the site, the email and desk settings.
+- **The token never lands in a config file.** It goes to the macOS Keychain (through `security -i` on stdin, never on a command line), to a DPAPI-protected file on Windows that only the same Windows user on the same PC can decrypt, or to the Linux Secret Service (a `0600` file when there is none, as in the container). The MCP server reads it at start. `config.json` holds only the site, the email and desk settings.
 - **The desk only takes Atlassian tools.** Its Copilot sessions see only the `pilotkit` tools (`availableTools`), skip custom instructions, run in an empty working folder, and a permission handler refuses anything else (shell, files, URLs, other MCP servers) with a reason the model can read. Refusals are recorded and shown in the call table.
-- **The desk listens on `127.0.0.1` only** and rejects requests whose `Host` is not `127.0.0.1` or `localhost` on its port, which stops DNS rebinding. Every write needs an `X-Pilotkit: 1` header, which a cross-site form or image cannot send, so another web page cannot spend credits. Pages carry a strict Content-Security-Policy (`script-src 'self'`, `frame-ancestors 'none'`).
+- **The desk listens on `127.0.0.1` only** and rejects requests whose `Host` is not `127.0.0.1` or `localhost` on its port, which stops DNS rebinding. In a container it listens on the container's network, and compose publishes the port on the PC's `127.0.0.1` only. Every write needs an `X-Pilotkit: 1` header, which a cross-site form or image cannot send, so another web page cannot spend credits. Pages carry a strict Content-Security-Policy (`script-src 'self'`, `frame-ancestors 'none'`).
 - **No telemetry.** pilotkit talks to your Atlassian site and, through the Copilot SDK, to GitHub. Nothing else.
 
 ## Where things live
@@ -196,6 +222,7 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 | Settings, desk history, brand pack | `~/.pilotkit/` (`config.json`, `desk.db`, `brand/`) |
 | Atlassian token | macOS Keychain service `pilotkit-atlassian`; `~/.pilotkit/atlassian.token` (DPAPI) on Windows; Secret Service on Linux |
 | Connectors added on this PC | `connectors` in `~/.pilotkit/config.json` |
+| The desk in a container | The Docker volume `pilotkit_home`, mounted on `/home/node`: `.pilotkit/` and the Copilot login |
 | Copilot CLI registration | `~/.copilot/mcp-config.json`, through `copilot mcp add`: one `pilotkit-<connector>` entry per connector |
 | VS Code registration | The user `mcp.json`: `~/Library/Application Support/Code/User/` (macOS), `%APPDATA%\Code\User\` (Windows), `~/.config/Code/User/` (Linux) |
 
@@ -213,7 +240,7 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 ## Repository layout
 
 ```text
-bin/pilotkit.mjs        the CLI: setup, add, remove, start, doctor, credits, brand, unlink, mcp
+bin/pilotkit.mjs        the CLI: setup, add, remove, start, doctor, credits, brand, unlink, mcp, container
 src/
   config.mjs            ~/.pilotkit paths, config.json, site normalisation
   secrets.mjs           the token in the Keychain, DPAPI or the Secret Service
@@ -221,9 +248,10 @@ src/
   brand.mjs             brand pack validation, install, load
   connectors/           the connector catalogue; each connector's setup, check, desk lines and server
   atlassian/            REST client, ADF and storage-format to text, the eight tools, the MCP server
-  cli/                  setup, add and remove, doctor and unlink, credits, terminal prompts
+  cli/                  setup, add and remove, doctor and unlink, credits, container, terminal prompts
   desk/                 HTTP server, Copilot session runner, SQLite schema, month report, tool policy
 site/                   the desk: chat, credits and start pages, Markdown renderer, default logo, fonts
+docker/                 the desk's image and compose file, which `pilotkit container` runs
 examples/brand-acme/    a fictional brand pack
 test/                   node:test suites
 changelog/unreleased/   one changelog fragment per PR, collated into CHANGELOG.md
@@ -254,6 +282,7 @@ Checked on 2026-10-12 on macOS with Node 24, Copilot CLI 1.0.91 and a real Jira 
 | Windows (DPAPI token, `.cmd` shims) | Verified on 2026-10-13 from PowerShell 7.6.6 with Copilot CLI 1.0.94: `npm install -g` (from GitHub `main`), setup (DPAPI token, Copilot CLI and VS Code registration) and the desk answering from Jira. VS Code Agent mode not yet checked |
 | Connectors (`pilotkit-atlassian`, `add`/`remove`, the rename from 0.2's `pilotkit`) | Verified on 2026-10-13 on macOS with scratch Copilot and VS Code folders and a local stand-in for Atlassian: setup renames the old entry in both clients, the desk and `copilot --allow-tool=pilotkit-atlassian` call the tools. On Windows on 2026-10-13 (PowerShell 7.6.6, Copilot CLI 1.0.94, `npm install -g pilotkit` 0.3.0) against a real site: `doctor` flags the old name, `setup` renames it in both clients, `doctor` is clean afterwards and the desk answers |
 | Linux (Secret Service) | **Not yet verified** |
+| The desk in a container (`pilotkit container`) | Verified on 2026-10-13 on macOS (Docker Desktop 29.7, linux/arm64) with a local stand-in for Atlassian. The image builds and runs as `node` on a read-only filesystem with no capabilities. It answers on `127.0.0.1` but not on the PC's network address, reaches Atlassian, and serves the eight MCP tools. `up` (twice, and on a taken port), `status`, `logs`, `run doctor` and `down` work. **Not yet verified:** the Copilot sign-in inside the container and a chat, Windows (x64) and Podman |
 | npm package | `npm pack` tarball installed globally into a scratch prefix: `--version`, `--help`, and the desk reaching Copilot, without koffi's install script |
 
 ## Notes

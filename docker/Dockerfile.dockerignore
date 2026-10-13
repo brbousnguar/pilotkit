@@ -1,0 +1,9 @@
+# The build context is the package folder (or the repo). Only what the Dockerfile copies goes in:
+# never node_modules, which holds the PC's own platform binaries.
+*
+!package.json
+!package-lock.json
+!bin/
+!src/
+!site/
+!examples/

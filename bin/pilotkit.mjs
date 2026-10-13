@@ -20,6 +20,8 @@ Usage
   pilotkit credits [--days n]  credits spent in the desk, by day and by model
   pilotkit brand [folder|url]  apply a brand pack, or show the current one; --reset goes back to neutral
   pilotkit mcp <connector>     run a connector's MCP server on stdio (what Copilot and VS Code start)
+  pilotkit container <action>  the desk in a container, with Docker or Podman: setup, up [--port n] [--no-open],
+                               down, status, logs [-f], run <command> (for example: run doctor)
   pilotkit unlink [--purge]    remove every pilotkit server from Copilot and VS Code and delete the credentials
   pilotkit --version
 
@@ -39,6 +41,12 @@ The API token can also come from PILOTKIT_ATLASSIAN_TOKEN; settings live in ~/.p
 `;
 
 async function main() {
+  // Its arguments go on to compose, or to pilotkit inside the container: they are not this CLI's options.
+  if (process.argv[2] === 'container') {
+    const { container } = await import('../src/cli/container.mjs');
+    process.exitCode = await container(process.argv.slice(3));
+    return;
+  }
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
