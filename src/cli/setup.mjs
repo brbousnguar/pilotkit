@@ -1,14 +1,14 @@
 import { installBrand, loadBrand } from '../brand.mjs';
-import { createAtlassian } from '../atlassian/client.mjs';
-import { copilotVersion, registerCopilot, registerVSCode, runTool, serverLaunch, vscodeUserDirs } from '../clients.mjs';
-import { DEFAULT_PORT, loadConfig, normalizeSite, saveConfig } from '../config.mjs';
-import { readToken, saveToken, storeName } from '../secrets.mjs';
+import {
+  copilotVersion, registerCopilot, registerVSCode, runTool, serverLaunch, unregisterCopilot, unregisterVSCode, vscodeUserDirs,
+} from '../clients.mjs';
+import { CONNECTORS, addedConnectors, findConnector, markAdded, markRemoved } from '../connectors/index.mjs';
+import { DEFAULT_PORT, loadConfig, saveConfig } from '../config.mjs';
 import { copilotStatus, quotaLine } from './copilot.mjs';
-import { ask, bad, bold, confirm, dim, info, ok, step, warn } from './ui.mjs';
+import { bad, bold, confirm, dim, info, ok, step, warn } from './ui.mjs';
 
-const TOKEN_PAGE = 'https://id.atlassian.com/manage-profile/security/api-tokens';
-const TOTAL = 4;
-
+// `pilotkit setup` signs in to Copilot, then sets up the connectors this PC already has (Jira and
+// Confluence on a first run) and registers each one with the Copilot clients.
 export async function setup(opts) {
   const config = loadConfig();
   let brand = loadBrand();
@@ -16,10 +16,13 @@ export async function setup(opts) {
     brand = await installBrand(opts.brand);
     console.log(`Brand pack applied: ${bold(brand.product)}`);
   }
-  console.log(`\n${bold(`${brand.product} setup`)} ${dim('— GitHub Copilot + Jira and Confluence on this PC')}`);
+  const added = addedConnectors(config);
+  const connectors = added.length ? added : [findConnector('atlassian')];
+  const total = connectors.length + 3;
+  console.log(`\n${bold(`${brand.product} setup`)} ${dim(`— GitHub Copilot + ${connectors.map((c) => c.title).join(' + ')} on this PC`)}`);
 
   // 1. Copilot: the CLI (it also opens the Copilot app), then a signed-in account.
-  step(1, TOTAL, 'GitHub Copilot');
+  step(1, total, 'GitHub Copilot');
   let cli = copilotVersion();
   if (!cli && !opts.skipCopilot) {
     warn('The GitHub Copilot CLI is not installed. It signs you in, and it also opens the Copilot app.');
@@ -46,77 +49,105 @@ export async function setup(opts) {
     info('Run "copilot login" (or "gh auth login"), then "pilotkit setup" again.');
   }
 
-  // 2. Atlassian: site, email, API token; checked against Jira before anything is saved.
-  step(2, TOTAL, 'Jira and Confluence');
-  const site = normalizeSite(opts.site ?? await ask('Atlassian site, for example acme.atlassian.net', { def: config.atlassian.site ?? brand.atlassianSite ?? undefined }));
-  if (!site) throw new Error('that is not an Atlassian site address (it looks like https://acme.atlassian.net)');
-  const email = (opts.email ?? await ask('Your Atlassian email', { def: config.atlassian.email ?? undefined })).trim();
-  if (!/^[^\s@"]+@[^\s@"]+\.[^\s@"]+$/.test(email)) throw new Error(`"${email}" is not an email address`);
-
-  let token = process.env.PILOTKIT_ATLASSIAN_TOKEN?.trim() || null;
-  const saved = token ? null : readToken(email);
-  if (!token && saved && config.atlassian.site === site && !opts.newToken && await confirm('Keep the API token saved on this PC?')) token = saved;
-  let me = null;
-  for (let attempt = 1; attempt <= 3 && !me; attempt++) {
-    if (!token) {
-      info(`Create a token at ${TOKEN_PAGE}`);
-      info('("Create API token", any name, then copy it). It is stored in ' + storeName() + ', never in a file you share.');
-      token = await ask('Paste the API token (it stays hidden)', { hidden: true });
-    }
-    try {
-      me = await createAtlassian({ site, email, token }).myself();
-    } catch (err) {
-      bad(err.message);
-      if (err.status !== 401 || process.env.PILOTKIT_ATLASSIAN_TOKEN) throw new Error('could not reach Atlassian with these details');
-      token = null;
-    }
+  // 2. Each connector: its account and credentials, checked before anything is saved.
+  let n = 1;
+  for (const c of connectors) {
+    step(++n, total, c.title);
+    await c.setup(config, { brand, opts });
+    markAdded(config, c);
+    saveConfig(config);
   }
-  if (!me) throw new Error('Atlassian refused the token three times');
-  ok(`Signed in to ${site} as ${bold(me.displayName)}`);
-  if (!process.env.PILOTKIT_ATLASSIAN_TOKEN) {
-    saveToken(email, token);
-    ok(`Token saved in ${storeName()}`);
-  }
-  config.atlassian = { site, email };
   config.desk.port = opts.port ?? config.desk.port ?? DEFAULT_PORT;
   saveConfig(config);
 
   // 3. The clients: the Copilot CLI and VS Code.
-  step(3, TOTAL, 'Copilot clients');
-  const launch = serverLaunch();
-  if (launch.viaNpx) {
-    warn('You ran pilotkit through npx, so the clients start it with npx each time (slower).');
-    info('For a faster, stable setup: npm install -g pilotkit, then pilotkit setup.');
-  }
-  if (cli && !opts.skipCopilot) {
-    try {
-      registerCopilot(launch);
-      ok('Copilot CLI: pilotkit tools added (check with "copilot mcp list")');
-    } catch (err) {
-      bad(`Copilot CLI: ${err.message}`);
-    }
-  }
-  const dirs = opts.skipVscode ? [] : vscodeUserDirs();
-  if (!dirs.length && !opts.skipVscode) info('VS Code not found on this PC: skipped.');
-  for (const dir of dirs) {
-    try {
-      const res = registerVSCode(dir, launch);
-      ok(`VS Code: pilotkit added to ${res.file}`);
-      if (res.hadComments) info(`Comments in that file were not kept; the original is in ${res.backup}`);
-    } catch (err) {
-      bad(`VS Code (${dir}): ${err.message}`);
-    }
-  }
+  step(++n, total, 'Copilot clients');
+  registerClients(connectors, { cli, opts });
 
   // 4. What to do next.
-  step(4, TOTAL, 'Ready');
+  step(++n, total, 'Ready');
   const port = config.desk.port;
   console.log(`
   ${bold('pilotkit start')}   opens the ${brand.product} on http://127.0.0.1:${port}/
                    chat about your tickets, and see the AI credits of every answer
   ${bold('VS Code')}          open Copilot Chat, choose Agent, ask "what are my open Jira tickets?"
-                   (VS Code asks once to trust the pilotkit server)
+                   (VS Code asks once to trust each pilotkit server)
   ${bold('copilot')}          the same question in a terminal; "copilot app" opens the Copilot app
   ${bold('pilotkit doctor')}  checks all of this again
 `);
+}
+
+// `pilotkit add <connector>`: its credentials, then its server in the Copilot clients.
+export async function add(id, opts) {
+  const c = findConnector(id);
+  const config = loadConfig();
+  const brand = loadBrand();
+  console.log(`\n${bold(`Add ${c.title}`)} ${dim(`— the ${c.server} tools for Copilot on this PC`)}`);
+  await c.setup(config, { brand, opts });
+  markAdded(config, c);
+  saveConfig(config);
+  const cli = copilotVersion();
+  if (!cli && !opts.skipCopilot) warn('No Copilot CLI on this PC: run "pilotkit setup" to install it and sign in.');
+  registerClients([c], { cli, opts });
+  console.log(`\n  ${bold('pilotkit start')} opens the desk; restart it if it is already open.\n`);
+}
+
+// `pilotkit remove <connector>`: out of the Copilot clients and its credentials deleted. Its
+// settings stay, so adding it again only asks for what is missing.
+export async function remove(id) {
+  const c = findConnector(id);
+  const config = loadConfig();
+  unregisterClients(c);
+  const forgot = c.forget(config);
+  if (forgot) ok(forgot);
+  markRemoved(config, c);
+  saveConfig(config);
+  info(`Its settings stay in config.json; "pilotkit add ${c.id}" brings it back.`);
+  return 0;
+}
+
+export function registerClients(connectors, { cli, opts }) {
+  const dirs = opts.skipVscode ? [] : vscodeUserDirs();
+  if (!dirs.length && !opts.skipVscode) info('VS Code not found on this PC: skipped.');
+  let npxNoted = false;
+  for (const c of connectors) {
+    const launch = serverLaunch(c.id);
+    if (launch.viaNpx && !npxNoted) {
+      npxNoted = true;
+      warn('You ran pilotkit through npx, so the clients start it with npx each time (slower).');
+      info('For a faster, stable setup: npm install -g pilotkit, then pilotkit setup.');
+    }
+    if (cli && !opts.skipCopilot) {
+      try {
+        const gone = registerCopilot(c.server, launch, { replaces: c.replaces });
+        ok(`Copilot CLI: ${c.server} added (check with "copilot mcp list")`);
+        if (gone.length) info(`Removed the old "${gone.join('", "')}" entry it replaces.`);
+      } catch (err) {
+        bad(`Copilot CLI: ${err.message}`);
+      }
+    }
+    for (const dir of dirs) {
+      try {
+        const res = registerVSCode(dir, c.server, launch, { replaces: c.replaces });
+        ok(`VS Code: ${c.server} added to ${res.file}`);
+        if (res.replaced.length) info(`Removed the old "${res.replaced.join('", "')}" entry it replaces.`);
+        if (res.hadComments) info(`Comments in that file were not kept; the original is in ${res.backup}`);
+      } catch (err) {
+        bad(`VS Code (${dir}): ${err.message}`);
+      }
+    }
+  }
+}
+
+// A connector's server and the old names it replaced, out of both clients.
+export function unregisterClients(c) {
+  for (const name of [c.server, ...c.replaces]) {
+    if (unregisterCopilot(name)) ok(`Removed ${name} from the Copilot CLI`);
+    for (const dir of vscodeUserDirs()) if (unregisterVSCode(dir, name)) ok(`Removed ${name} from VS Code (${dir})`);
+  }
+}
+
+// Every server pilotkit may have registered, whether this PC added it or not.
+export function unregisterAll() {
+  for (const c of CONNECTORS) unregisterClients(c);
 }

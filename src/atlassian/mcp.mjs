@@ -9,7 +9,7 @@ import { TOOLS } from './tools.mjs';
 // stdout carries the protocol, so every log line goes to stderr.
 
 export function createPilotkitMcpServer({ api } = {}) {
-  const server = new McpServer({ name: 'pilotkit', version: VERSION });
+  const server = new McpServer({ name: 'pilotkit-atlassian', version: VERSION });
   let client = api ?? null;
   let setupError = null;
 
@@ -46,5 +46,5 @@ export function createPilotkitMcpServer({ api } = {}) {
 export async function runMcp() {
   const server = createPilotkitMcpServer();
   await server.connect(new StdioServerTransport());
-  console.error(`pilotkit ${VERSION} MCP server ready on stdio`);
+  console.error(`pilotkit-atlassian ${VERSION} MCP server ready on stdio`);
 }

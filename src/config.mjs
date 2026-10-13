@@ -40,6 +40,8 @@ export function loadConfig() {
     }
   }
   return {
+    // The connectors this PC added. A 0.2 config has none listed but may have Atlassian set up.
+    connectors: Array.isArray(saved.connectors) ? saved.connectors : saved.atlassian?.site ? ['atlassian'] : [],
     atlassian: { ...DEFAULTS.atlassian, ...saved.atlassian },
     desk: { ...DEFAULTS.desk, ...saved.desk },
   };

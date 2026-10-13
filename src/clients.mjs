@@ -4,11 +4,14 @@ import { homedir } from 'node:os';
 import { join, sep } from 'node:path';
 import { BIN, VERSION } from './config.mjs';
 
-// Registers the pilotkit MCP server with the Copilot clients on this PC:
+// Registers the MCP server of each connector (pilotkit-atlassian, …) with the Copilot clients on this PC:
 // - the Copilot CLI, through `copilot mcp add` (it writes ~/.copilot/mcp-config.json);
 // - VS Code (and VS Code Insiders), in the user's mcp.json, so every workspace gets the tools.
+// Each connector is its own server, so a user adds only the systems their job needs and Copilot
+// carries only those tools. Before 0.3 the one server was named `pilotkit`: registering a
+// connector removes the names it `replaces`.
 
-export const SERVER_NAME = 'pilotkit';
+export const LEGACY_SERVER = 'pilotkit';
 const win = process.platform === 'win32';
 
 // npm installs CLIs as .cmd shims on Windows, which Node only starts through a shell. Arguments are
@@ -24,12 +27,12 @@ export function runTool(cmd, args = [], { inherit = false, env } = {}) {
   return { ok: res.status === 0, status: res.status, out: res.stdout ?? '', err: res.stderr ?? '' };
 }
 
-// How a client starts the server. A global install runs this Node with this file, so it works
-// even when the client's PATH does not know npm. An npx run lives in a cache npm may clear,
+// How a client starts a connector's server. A global install runs this Node with this file, so it
+// works even when the client's PATH does not know npm. An npx run lives in a cache npm may clear,
 // so it registers an npx command instead.
-export function serverLaunch() {
-  if (BIN.includes(`${sep}_npx${sep}`)) return { command: 'npx', args: ['-y', `pilotkit@${VERSION}`, 'mcp'], viaNpx: true };
-  return { command: stableNode(), args: [BIN, 'mcp'], viaNpx: false };
+export function serverLaunch(connectorId) {
+  if (BIN.includes(`${sep}_npx${sep}`)) return { command: 'npx', args: ['-y', `pilotkit@${VERSION}`, 'mcp', connectorId], viaNpx: true };
+  return { command: stableNode(), args: [BIN, 'mcp', connectorId], viaNpx: false };
 }
 
 // Homebrew's Node runs from a folder named after its version (…/Cellar/node@24/24.21.0/bin/node),
@@ -47,18 +50,20 @@ export function copilotVersion() {
   return res.ok ? (res.out.match(/\d+\.\d+\.\d+/)?.[0] ?? res.out.trim()) : null;
 }
 
-export function copilotRegistered() {
-  return runTool('copilot', ['mcp', 'get', SERVER_NAME]).ok;
+export function copilotRegistered(name) {
+  return runTool('copilot', ['mcp', 'get', name]).ok;
 }
 
-export function registerCopilot(launch = serverLaunch()) {
-  if (copilotRegistered()) runTool('copilot', ['mcp', 'remove', SERVER_NAME]);
-  const res = runTool('copilot', ['mcp', 'add', SERVER_NAME, '--', launch.command, ...launch.args]);
+/** Adds or replaces `name`, and removes the old names it replaces. Returns the old names removed. */
+export function registerCopilot(name, launch, { replaces = [] } = {}) {
+  if (copilotRegistered(name)) runTool('copilot', ['mcp', 'remove', name]);
+  const res = runTool('copilot', ['mcp', 'add', name, '--', launch.command, ...launch.args]);
   if (!res.ok) throw new Error((res.err || res.out).trim() || `copilot mcp add exited with ${res.status}`);
+  return replaces.filter((old) => unregisterCopilot(old));
 }
 
-export function unregisterCopilot() {
-  return copilotRegistered() && runTool('copilot', ['mcp', 'remove', SERVER_NAME]).ok;
+export function unregisterCopilot(name) {
+  return copilotRegistered(name) && runTool('copilot', ['mcp', 'remove', name]).ok;
 }
 
 // ---- VS Code ----
@@ -106,16 +111,22 @@ function readMcpJson(file) {
   return { data: text.trim() ? parseJsonc(text) : {}, hadComments: /\/\/|\/\*/.test(text.replace(/"(?:[^"\\]|\\.)*"/g, '""')) };
 }
 
-export function vscodeRegistered(dir) {
+/** The entry VS Code has for `name`, or null. */
+export function vscodeEntry(dir, name) {
   try {
-    return Boolean(readMcpJson(join(dir, 'mcp.json')).data.servers?.[SERVER_NAME]);
+    return readMcpJson(join(dir, 'mcp.json')).data.servers?.[name] ?? null;
   } catch {
-    return false;
+    return null;
   }
 }
 
-/** Adds or replaces the pilotkit entry. Returns where the original file was copied, if it existed. */
-export function registerVSCode(dir, launch = serverLaunch()) {
+export const vscodeRegistered = (dir, name) => Boolean(vscodeEntry(dir, name));
+
+/**
+ * Adds or replaces the `name` entry and drops the old names it replaces, in one write. Returns
+ * where the original file was copied (if it existed) and the old names removed.
+ */
+export function registerVSCode(dir, name, launch, { replaces = [] } = {}) {
   const file = join(dir, 'mcp.json');
   const { data, hadComments } = readMcpJson(file);
   let backup = null;
@@ -124,19 +135,21 @@ export function registerVSCode(dir, launch = serverLaunch()) {
     copyFileSync(file, backup);
   }
   data.servers ??= {};
-  data.servers[SERVER_NAME] = { type: 'stdio', command: launch.command, args: launch.args };
+  const replaced = replaces.filter((old) => old !== name && data.servers[old]);
+  for (const old of replaced) delete data.servers[old];
+  data.servers[name] = { type: 'stdio', command: launch.command, args: launch.args };
   mkdirSync(dir, { recursive: true });
   writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
-  return { file, backup, hadComments };
+  return { file, backup, hadComments, replaced };
 }
 
-export function unregisterVSCode(dir) {
+export function unregisterVSCode(dir, name) {
   const file = join(dir, 'mcp.json');
   if (!existsSync(file)) return false;
   const { data } = readMcpJson(file);
-  if (!data.servers?.[SERVER_NAME]) return false;
+  if (!data.servers?.[name]) return false;
   copyFileSync(file, `${file}.pilotkit-backup`);
-  delete data.servers[SERVER_NAME];
+  delete data.servers[name];
   writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
   return true;
 }
