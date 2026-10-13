@@ -3,7 +3,7 @@
 
 export const CONNECTOR_UI = {
   atlassian: {
-    reads: 'Jira and Confluence',
+    reads: ['Jira', 'Confluence'],
     short: ['Jira', 'Confluence'],
     long: ['your Jira issues', 'Confluence pages'],
     suggestions: [
@@ -39,11 +39,46 @@ export const CONNECTOR_UI = {
     ],
     fixes: '<code>pilotkit add atlassian --new-token</code> replaces an expired or revoked Atlassian token. Atlassian API tokens are created at <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener noreferrer">id.atlassian.com → Security → API tokens</a>.',
   },
+  salesforce: {
+    reads: ['Salesforce'],
+    short: ['Salesforce'],
+    long: ['Salesforce records'],
+    suggestions: [
+      ['Which Salesforce orgs can I read?', 'Alias, user, type and the default org', true],
+      ['Show the 10 most recently changed opportunities', 'Name, stage, amount, close date and owner', true],
+      ['Describe the Account object', 'Its fields, lookups and picklist values', true],
+      ['Find the Salesforce records about ', 'Type a name: accounts, contacts, opportunities', false],
+      ['Which custom objects does the org have?', 'Their API names, to ask about one of them', true],
+      ['How many open cases are there, by priority?', 'One count per priority', true],
+    ],
+    activity: {
+      salesforce_orgs: () => 'Checking your Salesforce orgs',
+      salesforce_query: (a) => (a.tooling ? 'Querying Salesforce metadata' : 'Querying Salesforce'),
+      salesforce_search: () => 'Searching Salesforce',
+      salesforce_describe: (a) => `Describing ${a.object ?? 'a Salesforce object'}`,
+      salesforce_list_objects: () => 'Listing the Salesforce objects',
+      salesforce_get_record: (a) => `Reading a Salesforce ${a.object ?? 'record'}`,
+    },
+    examples: [
+      'Which opportunities close this quarter, by stage and amount?',
+      'Show the open cases of the account Acme, newest first.',
+      'Describe the Opportunity object: which fields are required, and which are picklists?',
+      'Which Apex classes changed in the last 7 days, and who changed them? (Tooling API)',
+      'Draft a follow-up email for the opportunity Acme renewal. (pilotkit only reads: you send it yourself.)',
+    ],
+    cliExample: 'Which opportunities close this month?',
+    vscodeExample: 'Use pilotkit to list the opportunities that close this month.',
+    rules: [
+      'It reads Salesforce with your own login in the Salesforce CLI (sf), and only the orgs you picked: you see what your Salesforce user can see, nothing more.',
+      'pilotkit keeps no Salesforce password or token: the sf CLI keeps its logins, and queries go to it in a file, never through a shell.',
+    ],
+    fixes: '<code>sf org login web --alias &lt;name&gt;</code> logs an org in again when its login expired; <code>pilotkit add salesforce</code> changes which orgs pilotkit may read.',
+  },
 };
 
 // A connector this version of the pages does not know yet still gets plain wording.
 const plain = (c) => ({
-  reads: c.title, short: [c.title], long: [c.title], suggestions: [], activity: {}, examples: [], cliExample: null, vscodeExample: null, rules: [], fixes: '',
+  reads: [c.title], short: [c.title], long: [c.title], suggestions: [], activity: {}, examples: [], cliExample: null, vscodeExample: null, rules: [], fixes: '',
 });
 
 export const connectorsOf = (state) => state.connectors.map((c) => ({ ...c, ui: CONNECTOR_UI[c.id] ?? plain(c) }));

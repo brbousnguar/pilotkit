@@ -1,6 +1,7 @@
 import { atlassian } from './atlassian.mjs';
+import { salesforce } from './salesforce.mjs';
 
-// A connector is one system pilotkit can read (Jira and Confluence today), with its own MCP server
+// A connector is one system pilotkit can read (Jira and Confluence, Salesforce), with its own MCP server
 // named `pilotkit-<id>`. Each is added and registered on its own, so Copilot only carries the
 // tools of the systems a user added; the desk and its credits cover all of them.
 //
@@ -8,7 +9,7 @@ import { atlassian } from './atlassian.mjs';
 // needs), tools (names), configured(config), setup(config, { brand, opts }), check(config) (for
 // doctor and the desk: { ok, message, fix?, account? }), forget(config), summary(config) (where it
 // reads, without network), desk(config) and serve().
-export const CONNECTORS = [atlassian];
+export const CONNECTORS = [atlassian, salesforce];
 
 export function findConnector(id) {
   const c = CONNECTORS.find((x) => x.id === id);

@@ -15,6 +15,7 @@ export const atlassian = {
   replaces: ['pilotkit'],
   // What the server needs from the desk's environment, besides the basics.
   env: ['PILOTKIT_ATLASSIAN_TOKEN'],
+  example: 'what are my open Jira issues?',
   tools: TOOLS.map((t) => t.name),
 
   configured: (config) => Boolean(config.atlassian.site && config.atlassian.email),

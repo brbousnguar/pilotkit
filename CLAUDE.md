@@ -18,11 +18,15 @@ for anything that writes, so a test never touches a real setup.
 ## Architecture
 
 - `bin/pilotkit.mjs`: the CLI. Commands import their module lazily, so `pilotkit mcp` starts fast.
-- `src/connectors/`: one connector per system (`atlassian.mjs` today), listed in `index.mjs`. Each has its
+- `src/connectors/`: one connector per system (`atlassian.mjs`, `salesforce.mjs`), listed in `index.mjs`. Each has its
   own MCP server, `pilotkit-<id>`, registered on its own; it brings its setup step, doctor check,
   credential removal, desk guide lines and `serve()`. `config.connectors` lists the ones added.
 - `src/atlassian/`: `client.mjs` (GET-only REST client, hints per status), `text.mjs` (ADF and
   storage XHTML to short text), `tools.mjs` (the seven tools), `mcp.mjs` (stdio server).
+- `src/salesforce/`: `sf.mjs` (runs the Salesforce CLI: read commands only, safe arguments, `--json`),
+  `soql.mjs` (SELECT/FIND checks, the LIMIT it adds), `text.mjs` (records and describes to short
+  text), `client.mjs` (the org allowlist; queries go to `sf` in a temp file), `tools.mjs`, `mcp.mjs`.
+  pilotkit keeps no Salesforce credential: `sf` keeps its own logins.
 - `src/clients.mjs`: registration of a named server with the Copilot CLI (`copilot mcp add`) and
   VS Code (user `mcp.json`, JSONC-tolerant, backup first), dropping the old names it `replaces`
   (0.2's `pilotkit`). `serverLaunch(id)` decides the command clients run.
@@ -37,12 +41,14 @@ for anything that writes, so a test never touches a real setup.
 
 ## Invariants
 
-- **Read-only.** No tool may write to Jira, Confluence or any other connected system. A write tool would be a different product.
+- **Read-only.** No tool may write to Jira, Confluence, Salesforce or any other connected system. A write tool would be a different product. For Salesforce: only the commands in `READ_COMMANDS` run, and SOQL goes through `checkSoql`.
+- **Nothing a model writes goes on a command line.** Queries travel in a file; every other `sf` argument matches `SAFE_ARG` (on Windows `sf` runs through `cmd.exe`).
+- **A Salesforce org is read only when it is in the allowlist** (`config.salesforce.orgs`), whatever else `sf` is logged in to.
 - **One MCP server per connector.** Never merge systems into one server: Copilot sends every enabled
   tool's description with each request, so users must be able to add only what they need.
 - **The token never lands in a file a user shares**: not in `config.json`, not in an MCP config.
-- **Nothing company-specific in this repo**: no customer names, Atlassian sites, project keys or
-  logos. Companies brand pilotkit with a brand pack kept outside the repo (`examples/brand-acme`
+- **Nothing company-specific in this repo**: no customer names, Atlassian sites, Salesforce orgs,
+  project keys or logos. Companies brand pilotkit with a brand pack kept outside the repo (`examples/brand-acme`
   is fictional on purpose).
 - **The desk stays local**: bound to 127.0.0.1, Host checked, `X-Pilotkit: 1` on every write.
 - **Credits come from Copilot** (`assistant.usage` → `copilotUsage.totalNanoAiu / 1e9`); the

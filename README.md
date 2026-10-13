@@ -1,7 +1,7 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/brbousnguar/pilotkit/main/site/pilotkit.svg" width="72" alt="pilotkit" />
   <h1>pilotkit</h1>
-  <p><strong>Your GitHub Copilot seat, connected to Jira and Confluence in one command.</strong><br/>A read-only Atlassian MCP server, registered with the Copilot CLI and VS Code, plus a local chat desk that shows the AI credits of every answer.</p>
+  <p><strong>Your GitHub Copilot seat, connected to Jira, Confluence and Salesforce in one command.</strong><br/>Read-only MCP servers for Atlassian and Salesforce, registered with the Copilot CLI and VS Code, plus a local chat desk that shows the AI credits of every answer.</p>
 
   <p>
     <a href="https://www.npmjs.com/package/pilotkit"><img src="https://img.shields.io/npm/v/pilotkit?style=flat-square&color=cb3837&logo=npm&logoColor=white" alt="pilotkit on npm" /></a>
@@ -40,17 +40,18 @@ pilotkit start    # open the desk: chat about your tickets and pages, with the c
 ```
 
 - **One setup command** walks through four steps: GitHub Copilot sign-in (installing the Copilot CLI if needed), the Atlassian site, email and API token (checked against Jira before anything is saved), registration in the Copilot CLI and every VS Code install, and what to do next.
-- **Read-only connectors, one MCP server per system.** Jira and Confluence Cloud come first: `pilotkit-atlassian`, seven tools that read with the user's own account, so they see what the user could see in a browser and cannot change a ticket or a page. Each system someone adds is its own server, so Copilot only carries the tools of the systems their job needs.
+- **Read-only connectors, one MCP server per system.** `pilotkit-atlassian` has seven tools for Jira and Confluence Cloud, and `pilotkit-salesforce` six for the Salesforce orgs the user picks, read through the Salesforce CLI's own logins. Both read with the user's own account, so they see what the user could see in a browser and cannot change a ticket, a page or a record. Each system someone adds is its own server, so Copilot only carries the tools of the systems their job needs.
 - **The desk**, a chat page on `127.0.0.1`. It runs Copilot through the official [GitHub Copilot SDK](https://github.com/github/copilot-sdk), records each model call with the credits Copilot reports for it, and shows the cost under every answer, per day and per model.
 - **Brand packs**: the public package is neutral, and a team applies its own name, logo and colour with one command, without forking.
 
-Questions that work well: *"What are my open Jira issues, by priority?"*, *"Summarize KEY-123 and its last comments"*, *"Find the Confluence page about the release process and list its steps"*, *"Draft a stand-up update from my issues in progress"*.
+Questions that work well: *"What are my open Jira issues, by priority?"*, *"Summarize KEY-123 and its last comments"*, *"Find the Confluence page about the release process and list its steps"*, *"Draft a stand-up update from my issues in progress"*, *"Which opportunities close this quarter, by stage and amount?"*, *"Which of my open Jira issues belong to a Salesforce opportunity?"*.
 
 ## Requirements
 
 - **Node.js 22.13 or newer** (the desk uses the built-in `node:sqlite`).
 - **A GitHub Copilot plan** (a company seat or a personal plan), signed in through the Copilot CLI or the GitHub CLI. Setup installs `@github/copilot` and runs `copilot login` when it is missing.
 - **An Atlassian Cloud site** (`*.atlassian.net`), your Atlassian email, and an [API token](https://id.atlassian.com/manage-profile/security/api-tokens).
+- For Salesforce: the **[Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli)** (`sf`), logged in to the orgs to read. `pilotkit add salesforce` offers to install it and to log in.
 - Optional: **VS Code** with GitHub Copilot Chat, to use the tools in Agent mode.
 
 ## Setup
@@ -77,6 +78,7 @@ Every prompt has a flag, for scripted installs:
 | `--site <url>` | Atlassian site |
 | `--email <email>` | Atlassian account email |
 | `--new-token` | Ask for a new API token even when one is saved |
+| `--org <alias>` | A Salesforce org pilotkit may read, by alias or username; repeat it for several (`pilotkit add salesforce`) |
 | `--port <n>` | Desk port, default `8717` |
 | `--skip-copilot` / `--skip-vscode` | Leave that client alone |
 
@@ -93,6 +95,7 @@ pilotkit doctor           # check Node, Copilot, Atlassian and both registration
 pilotkit credits          # credits spent in the desk, by day and by model (--days 7)
 pilotkit brand <folder>   # apply a brand pack; --reset goes back to the neutral look
 pilotkit add atlassian    # connect one system and register its server (setup does this on a first run)
+pilotkit add salesforce   # the same for Salesforce, through the sf CLI
 pilotkit remove atlassian # take one system's server out of Copilot and VS Code and delete its credentials
 pilotkit unlink           # remove every pilotkit server from Copilot and VS Code and delete the credentials (--purge also deletes ~/.pilotkit)
 pilotkit mcp atlassian    # a connector's MCP server on stdio: what Copilot and VS Code start
@@ -103,9 +106,9 @@ Once set up, the same tools work in four places:
 | Where | How |
 |---|---|
 | The desk | `pilotkit start`, then ask on the Chat page |
-| VS Code | Copilot Chat → **Agent** mode → the tools icon lists **pilotkit-atlassian**. VS Code asks once to trust and start the server. |
+| VS Code | Copilot Chat → **Agent** mode → the tools icon lists **pilotkit-atlassian** (and **pilotkit-salesforce** once added). VS Code asks once to trust and start each server. |
 | Copilot CLI | `copilot`, then ask. For one question: `copilot -p "Summarize KEY-123" --allow-tool=pilotkit-atlassian` |
-| GitHub Copilot app | `copilot app` opens it. If pilotkit-atlassian is not in its tool list, add an MCP server with the command `pilotkit mcp atlassian`. |
+| GitHub Copilot app | `copilot app` opens it. If a pilotkit server is not in its tool list, add an MCP server with the command `pilotkit mcp atlassian` (or `pilotkit mcp salesforce`). |
 
 ## Connectors
 
@@ -114,8 +117,11 @@ A connector is one system pilotkit can read, with its own MCP server named `pilo
 | Connector | Server | Reads |
 |---|---|---|
 | `atlassian` | `pilotkit-atlassian` | Jira and Confluence Cloud, with your API token |
+| `salesforce` | `pilotkit-salesforce` | The Salesforce orgs you pick, through the logins of the Salesforce CLI |
 
 `pilotkit setup` sets up the connectors this PC already has, or Atlassian on a first run. `pilotkit add <connector>` and `pilotkit remove <connector>` handle one at a time. The desk and its credits cover every connector added on this PC, and it only approves their tools.
+
+**Adding Salesforce.** `pilotkit add salesforce` finds the Salesforce CLI (`sf`), lists the orgs it is logged in to (or runs `sf org login web` for a first one), and asks which of them pilotkit may read. That list is an allowlist: the tools refuse any other org `sf` knows, so a production org stays out unless someone picks it. Each org is checked with one query before anything is saved, and `--org <alias>` answers for scripts. pilotkit keeps no Salesforce password or token: `sf` keeps its own logins (`~/.sf`, the OS keychain). When one expires, `pilotkit doctor` and the tools print the `sf org login web` command that renews it. Run `pilotkit add salesforce` again to change the orgs.
 
 **Upgrading from 0.2.** The server used to be registered as `pilotkit`. It keeps working, and `pilotkit doctor` points it out; `pilotkit setup` renames it `pilotkit-atlassian` in the Copilot CLI and in VS Code.
 
@@ -139,7 +145,11 @@ The allowance comes from `account.getQuota`. It counts every Copilot client on t
 
 ## Tools
 
-All seven tools are read-only (`readOnlyHint: true`) and return compact Markdown: Atlassian rich text (ADF in Jira, storage XHTML in Confluence) is turned into short text before it reaches the model, because every character a tool returns is re-sent, and billed, with each later model call.
+Every tool is read-only (`readOnlyHint: true`) and returns compact Markdown, because every character a tool returns is re-sent, and billed, with each later model call.
+
+### Atlassian (`pilotkit-atlassian`)
+
+Atlassian rich text (ADF in Jira, storage XHTML in Confluence) is turned into short text before it reaches the model.
 
 | Tool | Arguments | Returns |
 |---|---|---|
@@ -152,6 +162,21 @@ All seven tools are read-only (`readOnlyHint: true`) and return compact Markdown
 | `confluence_get_page` | `page` (id or link), `max_chars?` | A page as text |
 
 Atlassian errors come back as text with a hint: a `401` points at the token, a `403` at missing permissions, a `404` at a wrong key or a page the user cannot see, a `410` at an API Atlassian has retired. A `429` is retried after the `Retry-After` delay.
+
+### Salesforce (`pilotkit-salesforce`)
+
+Each tool runs one `sf … --json` command against an org of the allowlist; `org` (an alias or username) picks one, and the first org picked in setup is the default. Records come back as one table with a link per id, relationship fields flattened (`Owner.Name`).
+
+| Tool | Arguments | Returns |
+|---|---|---|
+| `salesforce_orgs` | none | The orgs pilotkit may read: alias, username, type, instance, and the default one |
+| `salesforce_query` | `soql`, `org?`, `tooling?`, `max?` (1–200, default 50) | The records of a SOQL `SELECT`, or the count of a `SELECT COUNT()`. A `LIMIT` is added when the query has none; `tooling` queries the Tooling API (`ApexClass`, `CustomField`, `FlowDefinitionView`…) |
+| `salesforce_search` | `sosl`, `org?`, `max?` | A SOSL `FIND` across objects, one table per object |
+| `salesforce_describe` | `object`, `org?`, `filter?`, `tooling?` | The object's fields (API name, label, type, lookups, picklist values, required) and child relationships |
+| `salesforce_list_objects` | `kind?` (`all`, `custom`, `standard`), `filter?`, `org?` | Object API names |
+| `salesforce_get_record` | `object`, `id`, `org?`, `tooling?` | Every filled field of one record |
+
+A login that `sf` can no longer use comes back with the command that renews it (`sf org login web --alias <alias>`, with `--instance-url` for a sandbox).
 
 ## Brand packs
 
@@ -180,11 +205,12 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 
 ## Security
 
-- **Read-only by construction.** The MCP server only sends `GET` requests to Atlassian. It has no tool that writes, comments or transitions; ask for a draft and paste it yourself.
-- **The token never lands in a config file.** It goes to the macOS Keychain (through `security -i` on stdin, never on a command line), to a DPAPI-protected file on Windows that only the same Windows user on the same PC can decrypt, or to the Linux Secret Service (a `0600` file when there is none). The MCP server reads it at start. `config.json` holds only the site, the email and desk settings.
-- **The desk only takes Atlassian tools.** Its Copilot sessions see only the `pilotkit` tools (`availableTools`), skip custom instructions, run in an empty working folder, and a permission handler refuses anything else (shell, files, URLs, other MCP servers) with a reason the model can read. Refusals are recorded and shown in the call table.
+- **Read-only by construction.** The Atlassian server only sends `GET` requests. The Salesforce server only runs the read commands of `sf` (`org list`, `data query`, `data search`, `data get record`, `sobject describe`, `sobject list`), takes SOQL that starts with `SELECT` and has no `FOR UPDATE`, `FOR VIEW`, `FOR REFERENCE` or `UPDATE TRACKING`/`VIEWSTAT` clause, and reads only the orgs of its allowlist. Neither has a tool that writes, comments, transitions or deploys; ask for a draft and paste it yourself.
+- **Nothing the model writes reaches a shell.** `sf` gets SOQL and SOSL in a temporary file (`--file`), deleted after the run, and every other argument must be letters, digits and a few safe characters: on Windows `sf` is a `.cmd` that only starts through `cmd.exe`, which would act on `&`, `|`, `%` or `^` in a query.
+- **The token never lands in a config file.** It goes to the macOS Keychain (through `security -i` on stdin, never on a command line), to a DPAPI-protected file on Windows that only the same Windows user on the same PC can decrypt, or to the Linux Secret Service (a `0600` file when there is none). The MCP server reads it at start. `config.json` holds only the site, the email and desk settings. For Salesforce, pilotkit holds no credential at all: `config.json` keeps the path of `sf` and the orgs it may read, and `sf` keeps its own logins.
+- **The desk only takes pilotkit tools.** Its Copilot sessions see only the tools of the pilotkit servers this PC added (`availableTools`), skip custom instructions, run in an empty working folder, and a permission handler refuses anything else (shell, files, URLs, other MCP servers) with a reason the model can read. Refusals are recorded and shown in the call table.
 - **The desk listens on `127.0.0.1` only** and rejects requests whose `Host` is not `127.0.0.1` or `localhost` on its port, which stops DNS rebinding. Every write needs an `X-Pilotkit: 1` header, which a cross-site form or image cannot send, so another web page cannot spend credits. Pages carry a strict Content-Security-Policy (`script-src 'self'`, `frame-ancestors 'none'`).
-- **No telemetry.** pilotkit talks to your Atlassian site and, through the Copilot SDK, to GitHub. Nothing else.
+- **No telemetry.** pilotkit talks to your Atlassian site, to your Salesforce orgs through `sf`, and, through the Copilot SDK, to GitHub. Nothing else.
 
 ## Where things live
 
@@ -192,6 +218,7 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 |---|---|
 | Settings, desk history, brand pack | `~/.pilotkit/` (`config.json`, `desk.db`, `brand/`) |
 | Atlassian token | macOS Keychain service `pilotkit-atlassian`; `~/.pilotkit/atlassian.token` (DPAPI) on Windows; Secret Service on Linux |
+| Salesforce logins | The Salesforce CLI's own store (`~/.sf/`, with the key in the OS keychain); pilotkit's allowlist is `salesforce.orgs` in `~/.pilotkit/config.json` |
 | Connectors added on this PC | `connectors` in `~/.pilotkit/config.json` |
 | Copilot CLI registration | `~/.copilot/mcp-config.json`, through `copilot mcp add`: one `pilotkit-<connector>` entry per connector |
 | VS Code registration | The user `mcp.json`: `~/Library/Application Support/Code/User/` (macOS), `%APPDATA%\Code\User\` (Windows), `~/.config/Code/User/` (Linux) |
@@ -204,6 +231,7 @@ pilotkit brand https://intranet.example.com/pilotkit/brand.json
 | Copilot | [`@github/copilot-sdk`](https://www.npmjs.com/package/@github/copilot-sdk) 1.0: sessions, streaming, usage events, permission handler, quota |
 | MCP | [`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) 1.32, stdio transport, `zod` 4 schemas |
 | Atlassian | Jira Cloud REST v3 (`/search/jql`), Confluence REST v1 search and v2 pages, basic auth with an API token |
+| Salesforce | The [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) 2.x with `--json`: `data query`, `data search`, `data get record`, `sobject describe`, `sobject list`, `org list` |
 | Desk | `node:http`, `node:sqlite`, Server-Sent Events, plain HTML, CSS and JavaScript (no framework, no bundler) |
 | Tests | `node:test` |
 
@@ -218,6 +246,7 @@ src/
   brand.mjs             brand pack validation, install, load
   connectors/           the connector catalogue; each connector's setup, check, desk lines and server
   atlassian/            REST client, ADF and storage-format to text, the seven tools, the MCP server
+  salesforce/           sf runner (read commands only), SOQL checks, records to text, the six tools, the MCP server
   cli/                  setup, add and remove, doctor and unlink, credits, terminal prompts
   desk/                 HTTP server, Copilot session runner, SQLite schema, month report, tool policy
 site/                   the desk: chat, credits and start pages, Markdown renderer, default logo, fonts
@@ -249,6 +278,7 @@ Checked on 2026-10-12 on macOS with Node 24, Copilot CLI 1.0.91 and a real Jira 
 | VS Code registration | Covered by tests on a JSONC `mcp.json` with other servers |
 | Windows (DPAPI token, `.cmd` shims) | Verified on 2026-10-13 from PowerShell 7.6.6 with Copilot CLI 1.0.94: `npm install -g` (from GitHub `main`), setup (DPAPI token, Copilot CLI and VS Code registration) and the desk answering from Jira. VS Code Agent mode not yet checked |
 | Connectors (`pilotkit-atlassian`, `add`/`remove`, the rename from 0.2's `pilotkit`) | Verified on 2026-10-13 on macOS with scratch Copilot and VS Code folders and a local stand-in for Atlassian: setup renames the old entry in both clients, the desk and `copilot --allow-tool=pilotkit-atlassian` call the tools. On Windows on 2026-10-13 (PowerShell 7.6.6, Copilot CLI 1.0.94, `npm install -g pilotkit` 0.3.0) against a real site: `doctor` flags the old name, `setup` renames it in both clients, `doctor` is clean afterwards and the desk answers |
+| Salesforce connector | Verified on 2026-10-13 on macOS with Salesforce CLI 2.152.14 for `org list`, and a stand-in `sf` for org data: `pilotkit add salesforce --org` (allowlist, both registrations), all six tools over stdio with a short `PATH` (including the refusals of another org and of `FOR UPDATE`), and the desk answering one question from Jira and Salesforce together. **Not yet verified against a live org**, nor on Windows |
 | Linux (Secret Service) | **Not yet verified** |
 | npm package | `npm pack` tarball installed globally into a scratch prefix: `--version`, `--help`, and the desk reaching Copilot, without koffi's install script |
 
@@ -261,7 +291,7 @@ Checked on 2026-10-12 on macOS with Node 24, Copilot CLI 1.0.91 and a real Jira 
 
 ## License
 
-Apache-2.0. GitHub and GitHub Copilot are trademarks of GitHub, Inc.; Atlassian, Jira and Confluence are trademarks of Atlassian. pilotkit is an independent project, not affiliated with or endorsed by either.
+Apache-2.0. GitHub and GitHub Copilot are trademarks of GitHub, Inc.; Atlassian, Jira and Confluence are trademarks of Atlassian; Salesforce is a trademark of Salesforce, Inc. pilotkit is an independent project, not affiliated with or endorsed by any of them.
 
 ---
 

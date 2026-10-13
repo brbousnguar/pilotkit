@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- The `salesforce` connector: `pilotkit add salesforce` lets Copilot read the Salesforce orgs a user picks, through the logins of the Salesforce CLI (`sf`), with six read-only tools in their own server, `pilotkit-salesforce`: SOQL queries (Tooling API too), SOSL search, object describes, object lists, one record, and the orgs it may read. Only the picked orgs are read, only read commands of `sf` run, and pilotkit keeps no Salesforce credential. `--org <alias>` picks orgs from a script (#27)
+
 ### Changed
 - The desk follows the connectors this PC added: the chat's suggestions, activity lines, placeholder and settings, and the Start page's heading, examples, server names and rules, name only those systems. The Start page checks each connection live, with the command that fixes it, and shows the account's name instead of its email. A brand pack's `welcome` is optional (#25)
 

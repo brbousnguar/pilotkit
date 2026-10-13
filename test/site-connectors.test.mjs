@@ -20,7 +20,7 @@ test('joinWords and the suggestions shared out between connectors', () => {
   const one = connectorsOf({ connectors: [{ id: 'atlassian', title: 'Jira and Confluence' }] });
   assert.equal(suggestionsOf(one).length, 6);
   const two = connectorsOf({ connectors: [{ id: 'atlassian', title: 'A' }, { id: 'unknown', title: 'Later' }] });
-  assert.equal(two[1].ui.reads, 'Later');
+  assert.deepEqual(two[1].ui.reads, ['Later']);
   assert.deepEqual(suggestionsOf(two), CONNECTOR_UI.atlassian.suggestions.slice(0, 3));
   assert.deepEqual(suggestionsOf([]), []);
 });
