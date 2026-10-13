@@ -15,7 +15,7 @@ export const paths = {
   config: join(HOME, 'config.json'),
   brand: join(HOME, 'brand'),
   db: join(HOME, 'desk.db'),
-  // The working directory of desk sessions: empty on purpose, the desk reads Jira and Confluence, not files.
+  // The working directory of desk sessions: empty on purpose, the desk reads the connected systems, not files.
   workspace: join(HOME, 'workspace'),
   tokenFile: join(HOME, 'atlassian.token'),
 };
@@ -27,6 +27,8 @@ export function ensureHome() {
 
 const DEFAULTS = {
   atlassian: { site: null, email: null },
+  // sf: full path of the Salesforce CLI; orgs: the ones pilotkit may read ({ username, alias, instanceUrl, kind }).
+  salesforce: { sf: null, orgs: [], defaultOrg: null },
   desk: { port: DEFAULT_PORT, model: 'auto', maxCredits: 60 },
 };
 
@@ -43,6 +45,7 @@ export function loadConfig() {
     // The connectors this PC added. A 0.2 config has none listed but may have Atlassian set up.
     connectors: Array.isArray(saved.connectors) ? saved.connectors : saved.atlassian?.site ? ['atlassian'] : [],
     atlassian: { ...DEFAULTS.atlassian, ...saved.atlassian },
+    salesforce: { ...DEFAULTS.salesforce, ...saved.salesforce, orgs: Array.isArray(saved.salesforce?.orgs) ? saved.salesforce.orgs : [] },
     desk: { ...DEFAULTS.desk, ...saved.desk },
   };
 }

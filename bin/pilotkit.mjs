@@ -8,11 +8,11 @@ process.on('warning', (w) => {
   console.warn(`${w.name}: ${w.message}`);
 });
 
-const HELP = `pilotkit — GitHub Copilot with Jira and Confluence, set up in one command
+const HELP = `pilotkit — GitHub Copilot with Jira, Confluence and Salesforce, set up in one command
 
 Usage
   pilotkit setup [options]     sign in to Copilot, connect Atlassian, add the tools to Copilot and VS Code
-  pilotkit add <connector>     connect one system and add its tools to Copilot and VS Code (atlassian)
+  pilotkit add <connector>     connect one system and add its tools to Copilot and VS Code (atlassian, salesforce)
   pilotkit remove <connector>  take one system's tools out of Copilot and VS Code and delete its credentials
   pilotkit start [--port n]    open the desk: chat about tickets and pages, with the AI credits of every answer
                                (--no-open starts it without opening a browser)
@@ -23,7 +23,7 @@ Usage
   pilotkit unlink [--purge]    remove every pilotkit server from Copilot and VS Code and delete the credentials
   pilotkit --version
 
-Each connector is its own MCP server, pilotkit-<connector> (pilotkit-atlassian), so Copilot
+Each connector is its own MCP server, pilotkit-<connector> (pilotkit-atlassian, pilotkit-salesforce), so Copilot
 carries only the tools of the systems you added.
 
 Setup and add options
@@ -31,11 +31,13 @@ Setup and add options
   --site <url>           Atlassian site, e.g. acme.atlassian.net
   --email <email>        Atlassian account email
   --new-token            ask for a new API token even if one is saved
+  --org <alias>          Salesforce org pilotkit may read (repeat it for several); the first is the default
   --port <n>             desk port (default 8717)
   --skip-copilot         do not touch the Copilot CLI
   --skip-vscode          do not touch VS Code
 
-The API token can also come from PILOTKIT_ATLASSIAN_TOKEN; settings live in ~/.pilotkit (PILOTKIT_HOME).
+The Atlassian API token can also come from PILOTKIT_ATLASSIAN_TOKEN. Salesforce uses the logins of the
+Salesforce CLI (sf org login web). Settings live in ~/.pilotkit (PILOTKIT_HOME).
 `;
 
 async function main() {
@@ -46,6 +48,7 @@ async function main() {
       site: { type: 'string' },
       email: { type: 'string' },
       'new-token': { type: 'boolean' },
+      org: { type: 'string', multiple: true },
       port: { type: 'string' },
       days: { type: 'string' },
       'skip-copilot': { type: 'boolean' },
@@ -70,20 +73,20 @@ async function main() {
     case 'setup': {
       const { setup } = await import('../src/cli/setup.mjs');
       return setup({
-        brand: values.brand, site: values.site, email: values.email, newToken: values['new-token'], port,
+        brand: values.brand, site: values.site, email: values.email, newToken: values['new-token'], org: values.org, port,
         skipCopilot: values['skip-copilot'], skipVscode: values['skip-vscode'],
       });
     }
     case 'add':
     case 'remove': {
-      if (!positionals[1]) throw new Error(`which connector? "pilotkit ${command} atlassian"`);
+      if (!positionals[1]) throw new Error(`which connector? "pilotkit ${command} atlassian" or "pilotkit ${command} salesforce"`);
       const cli = await import('../src/cli/setup.mjs');
       if (command === 'remove') {
         process.exitCode = await cli.remove(positionals[1]);
         return;
       }
       return cli.add(positionals[1], {
-        site: values.site, email: values.email, newToken: values['new-token'],
+        site: values.site, email: values.email, newToken: values['new-token'], org: values.org,
         skipCopilot: values['skip-copilot'], skipVscode: values['skip-vscode'],
       });
     }

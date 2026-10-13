@@ -16,7 +16,7 @@ function connectorRow(c, check) {
 }
 
 function guide(connectors) {
-  const reads = joinWords(connectors.map((c) => c.ui.reads), 'and');
+  const reads = joinWords(connectors.flatMap((c) => c.ui.reads), 'and');
   if (reads) {
     $('#reads').textContent = reads;
     $('#reads-lede').textContent = reads;
@@ -28,7 +28,8 @@ function guide(connectors) {
   const first = connectors.find((c) => c.ui.cliExample) ?? connectors[0];
   if (first.ui.vscodeExample) $('#vscode-example').textContent = `"${first.ui.vscodeExample}"`;
   $('#cli-example').textContent = `copilot -p "${first.ui.cliExample ?? 'What can you read with pilotkit?'}" ${servers.map((s) => `--allow-tool=${s}`).join(' ')}`;
-  $('#app-example').textContent = connectors.map((c) => `pilotkit mcp ${c.id}`).join(', ');
+  const commands = connectors.map((c) => `<code>pilotkit mcp ${esc(c.id)}</code>`);
+  $('#app-example').innerHTML = `the command${commands.length > 1 ? 's' : ''} ${joinWords(commands, 'and')}${commands.length > 1 ? ', one server each' : ''}`;
   $('#examples').innerHTML = connectors.filter((c) => c.ui.examples.length).map((c) => `
     ${connectors.length > 1 ? `<h3>${esc(c.title)}</h3>` : ''}
     <ul class="chips">${c.ui.examples.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>`).join('');

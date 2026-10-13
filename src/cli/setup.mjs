@@ -69,8 +69,8 @@ export async function setup(opts) {
   const port = config.desk.port;
   console.log(`
   ${bold('pilotkit start')}   opens the ${brand.product} on http://127.0.0.1:${port}/
-                   chat about your tickets, and see the AI credits of every answer
-  ${bold('VS Code')}          open Copilot Chat, choose Agent, ask "what are my open Jira tickets?"
+                   chat about ${connectors.map((c) => c.title).join(' and ')}, and see the AI credits of every answer
+  ${bold('VS Code')}          open Copilot Chat, choose Agent, ask "${connectors[0].example}"
                    (VS Code asks once to trust each pilotkit server)
   ${bold('copilot')}          the same question in a terminal; "copilot app" opens the Copilot app
   ${bold('pilotkit doctor')}  checks all of this again

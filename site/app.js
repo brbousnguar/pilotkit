@@ -235,7 +235,7 @@ function workHtml(n, t, notes, live) {
 
 function argSummary(x) {
   const a = args(x);
-  return a.key ?? a.jql ?? a.cql ?? a.query ?? a.page ?? (x.name === 'jira_my_issues' ? (a.include_done ? 'open and done' : 'open issues') : '');
+  return a.key ?? a.jql ?? a.cql ?? a.soql ?? a.sosl ?? a.id ?? a.object ?? a.filter ?? a.query ?? a.page ?? (x.name === 'jira_my_issues' ? (a.include_done ? 'open and done' : 'open issues') : '');
 }
 
 // The calls and the tools of one turn, in the order they happened: a model call, then the tools it asked for.

@@ -16,7 +16,7 @@ const win = process.platform === 'win32';
 
 // npm installs CLIs as .cmd shims on Windows, which Node only starts through a shell. Arguments are
 // fixed words and file paths here, so quoting each one is enough.
-const quote = (a) => (/^[\w./:=@\\-]+$/.test(a) ? a : `"${a.replace(/"/g, '\\"')}"`);
+export const quote = (a) => (/^[\w./:=@\\-]+$/.test(a) ? a : `"${a.replace(/"/g, '\\"')}"`);
 
 export function runTool(cmd, args = [], { inherit = false, env } = {}) {
   const opts = { encoding: 'utf8', windowsHide: true, env: env ?? process.env, stdio: inherit ? 'inherit' : 'pipe' };
