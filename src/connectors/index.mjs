@@ -5,8 +5,9 @@ import { atlassian } from './atlassian.mjs';
 // tools of the systems a user added; the desk and its credits cover all of them.
 //
 // A connector has: id, title, server, replaces (old server names), env (variables its server
-// needs), tools (names), configured(config), setup(config, { brand, opts }), check(config),
-// forget(config), desk(config) and serve().
+// needs), tools (names), configured(config), setup(config, { brand, opts }), check(config) (for
+// doctor and the desk: { ok, message, fix?, account? }), forget(config), summary(config) (where it
+// reads, without network), desk(config) and serve().
 export const CONNECTORS = [atlassian];
 
 export function findConnector(id) {
