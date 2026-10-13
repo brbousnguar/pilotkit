@@ -45,6 +45,52 @@ export function pageIdFrom(input) {
 }
 
 const quote = (s) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+const ISSUE_KEY = /^[A-Za-z][A-Za-z0-9_]*-\d+$/;
+
+// "-7d", "-24h", "-2w", "-30m", or a date ("2026-10-01", "2026-10-01 14:00", local time) as a Date.
+export function sinceDate(since, now = new Date()) {
+  const s = String(since).trim();
+  const rel = s.match(/^-(\d+)\s*([mhdw])$/i);
+  if (rel) return new Date(now.getTime() - Number(rel[1]) * { m: 6e4, h: 3.6e6, d: 8.64e7, w: 6.048e8 }[rel[2].toLowerCase()]);
+  const abs = s.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?$/);
+  if (!abs) return null;
+  const d = new Date(`${abs[1]}T${abs[2] ?? '00:00'}:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+// Long text fields change as a whole: say so instead of quoting both versions.
+const TEXT_FIELDS = new Set(['description', 'environment']);
+const value = (s) => {
+  const v = cell(s);
+  return !v ? '(none)' : v.length > 80 ? `${v.slice(0, 80)}…` : v;
+};
+const when = (iso) => String(iso ?? '').replace('T', ' ').slice(0, 16);
+const UNITS = { m: 'minute', h: 'hour', d: 'day', w: 'week' };
+// "in the last 7 days", "since 2026-10-01": the window as the user gave it.
+const windowText = (since) => {
+  const rel = String(since).trim().match(/^-(\d+)\s*([mhdw])$/i);
+  if (!rel) return ` since ${String(since).trim()}`;
+  const n = Number(rel[1]);
+  return ` in the last ${n === 1 ? '' : `${n} `}${UNITS[rel[2].toLowerCase()]}${n === 1 ? '' : 's'}`;
+};
+
+// One line per change, newest first: "- 2026-10-12 15:02 Ana Lima: Status: To Do → In Progress".
+export function historyLines(histories, { since, fields, max }) {
+  const only = fields?.length ? new Set(fields.map((f) => f.toLowerCase())) : null;
+  const lines = [];
+  const people = new Map();
+  for (const h of histories ?? []) {
+    if (since && new Date(h.created) < since) continue;
+    const items = (h.items ?? []).filter((it) => !only || only.has(String(it.field).toLowerCase()) || only.has(String(it.fieldId ?? '').toLowerCase()));
+    if (!items.length) continue;
+    const who = h.author?.displayName ?? 'Jira';
+    people.set(who, (people.get(who) ?? 0) + 1);
+    const what = items.map((it) => (TEXT_FIELDS.has(String(it.field).toLowerCase())
+      ? `${it.field} edited` : `${it.field}: ${value(it.fromString)} → ${value(it.toString)}`)).join('; ');
+    lines.push(`- ${when(h.created)} ${who}: ${what}`);
+  }
+  return { shown: lines.slice(0, max), total: lines.length, people };
+}
 
 export const TOOLS = [
   {
@@ -85,7 +131,7 @@ export const TOOLS = [
     title: 'Read a Jira issue',
     description: 'Read one Jira issue: status, people, sprint, description, the latest comments, links and sub-tasks.',
     input: {
-      key: z.string().regex(/^[A-Za-z][A-Za-z0-9_]*-\d+$/).describe('Issue key, for example ABC-123.'),
+      key: z.string().regex(ISSUE_KEY).describe('Issue key, for example ABC-123.'),
       comments: z.number().int().min(0).max(20).optional().describe('How many of the latest comments, 0-20. Default 5.'),
       max_chars: z.number().int().min(500).max(30000).optional().describe('Cut the description at this length. Default 6000.'),
     },
@@ -121,6 +167,56 @@ export const TOOLS = [
         out.push(`## Comments (latest ${shown.length} of ${all.length})\n${shown.join('\n')}`);
       }
       return out.join('\n\n');
+    },
+  },
+  {
+    name: 'jira_issue_history',
+    title: 'Jira change history',
+    description: 'Who changed what in Jira, and when: status, assignee, priority, sprint and other field changes, newest first. '
+      + 'Give "key" for one issue, or "jql" for several, for example: project = ABC AND updated >= -7d. Jira keeps the latest 100 changes per issue here.',
+    input: {
+      key: z.string().regex(ISSUE_KEY).optional().describe('One issue key, for example ABC-123.'),
+      jql: z.string().min(1).optional().describe('Several issues: a JQL query with a restriction, for example project = ABC AND updated >= -7d.'),
+      since: z.string().max(20).optional().describe('Only changes after this: -7d, -24h, -2w, or a date such as 2026-10-01. Default: every change for one issue, -7d for a JQL query.'),
+      fields: z.array(z.string().min(1).max(60)).max(10).optional().describe('Only changes to these fields, for example ["status", "assignee"].'),
+      max: z.number().int().min(1).max(25).optional().describe('Issues for a JQL query, 1-25. Default 10.'),
+      per_issue: z.number().int().min(1).max(50).optional().describe('Changes shown per issue, 1-50. Default 10.'),
+    },
+    run: async (api, { key, jql, since, fields, max = 10, per_issue = 10 }) => {
+      if (!key === !jql) return 'Give either "key" (one issue) or "jql" (several issues).';
+      const from = since ?? (jql ? '-7d' : null);
+      const after = from ? sinceDate(from) : null;
+      if (from && !after) return `"${from}" is not a time: use -7d, -24h, -2w, or a date such as 2026-10-01.`;
+      const window = after ? windowText(from) : '';
+      const head = (i) => `[${i.key}](${api.site}/browse/${i.key}) ${cell(i.fields?.summary)}`;
+
+      if (key) {
+        const i = await api.issueChanges(key.toUpperCase());
+        const { shown, total } = historyLines(i.changelog?.histories, { since: after, fields, max: per_issue });
+        if (!total) return `${head(i)}\nNo change${fields?.length ? ` to ${fields.join(', ')}` : ''}${window}.`;
+        const older = total > shown.length ? `\n(${total - shown.length} older change(s) not shown: raise per_issue.)` : '';
+        return `${head(i)}\n${total} change(s)${window}, newest first:\n${shown.join('\n')}${older}`;
+      }
+
+      const res = await api.searchIssues({ jql, fields: ['summary'], maxResults: max, expand: 'changelog' });
+      const issues = res.issues ?? [];
+      const people = new Map();
+      const blocks = [];
+      const quiet = [];
+      for (const i of issues) {
+        const h = historyLines(i.changelog?.histories, { since: after, fields, max: per_issue });
+        for (const [who, n] of h.people) people.set(who, (people.get(who) ?? 0) + n);
+        if (!h.total) quiet.push(i.key);
+        else blocks.push(`${head(i)} (${h.total} change(s))\n${h.shown.join('\n')}${h.total > h.shown.length ? `\n- … ${h.total - h.shown.length} more` : ''}`);
+      }
+      const byPerson = [...people].sort((a, b) => b[1] - a[1]).map(([who, n]) => `${who} ${n}`).join(', ');
+      return [
+        `${blocks.length} of ${issues.length} issue(s) changed${window}, for: ${jql}`,
+        byPerson && `Changes by person: ${byPerson}`,
+        ...blocks,
+        quiet.length && `No change${window}: ${quiet.join(', ')}`,
+        res.nextPageToken && 'More issues match: narrow the JQL or raise max.',
+      ].filter(Boolean).join('\n\n');
     },
   },
   {

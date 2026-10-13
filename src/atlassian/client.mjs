@@ -57,10 +57,12 @@ export function createAtlassian({ site, email, token, fetchImpl = fetch }) {
     get,
     myself: () => get('/rest/api/3/myself'),
     // The enhanced JQL search (the old /search endpoint is retired on Jira Cloud).
-    searchIssues: ({ jql, fields, maxResults = 20, nextPageToken }) => get('/rest/api/3/search/jql', {
-      jql, fields: fields.join(','), maxResults, nextPageToken,
+    searchIssues: ({ jql, fields, maxResults = 20, nextPageToken, expand }) => get('/rest/api/3/search/jql', {
+      jql, fields: fields.join(','), maxResults, nextPageToken, expand,
     }),
     issue: (key) => get(`/rest/api/3/issue/${encodeURIComponent(key)}`, { fields: '*all', expand: 'names' }),
+    // The summary and the latest changes (Jira returns up to 100, newest first).
+    issueChanges: (key) => get(`/rest/api/3/issue/${encodeURIComponent(key)}`, { fields: 'summary', expand: 'changelog' }),
     projects: ({ query, maxResults = 50 }) => get('/rest/api/3/project/search', { query, maxResults, orderBy: 'name' }),
     confluenceSearch: ({ cql, limit = 10 }) => get('/wiki/rest/api/search', { cql, limit, excerpt: 'highlight' }),
     page: (id) => get(`/wiki/api/v2/pages/${encodeURIComponent(id)}`, { 'body-format': 'storage' }),

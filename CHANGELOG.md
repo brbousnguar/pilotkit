@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `jira_issue_history`: who changed what in Jira, and when. One issue (`key`) or several (`jql`), with a time window (`since`: `-7d`, `-24h`, `-2w` or a date), a field filter and a count of changes per person, from the same GET searches with `expand=changelog`. The desk suggests *"What changed in my open issues this week, and who changed it?"* (#31)
+
 ### Changed
 - The desk follows the connectors this PC added: the chat's suggestions, activity lines, placeholder and settings, and the Start page's heading, examples, server names and rules, name only those systems. The Start page checks each connection live, with the command that fixes it, and shows the account's name instead of its email. A brand pack's `welcome` is optional (#25)
 

@@ -8,7 +8,7 @@ export const CONNECTOR_UI = {
     long: ['your Jira issues', 'Confluence pages'],
     suggestions: [
       ['What are my open Jira issues, by priority?', 'Status, priority and due date in one table', true],
-      ['Which of my issues changed in the last 7 days?', 'What moved, newest first', true],
+      ['What changed in my open issues this week, and who changed it?', 'Who moved what, newest first', true],
       ['Summarize the Jira issue ', 'Type the key: the problem, what was tried, what is left', false],
       ['Find the Confluence pages about onboarding', 'Titles, spaces and links', true],
       ['Draft a stand-up update from my issues in progress', 'Yesterday, today, blockers', true],
@@ -20,6 +20,7 @@ export const CONNECTOR_UI = {
       jira_my_issues: () => 'Loading your Jira issues',
       jira_search: () => 'Searching Jira',
       jira_get_issue: (a) => `Reading Jira ${a.key ?? 'issue'}`,
+      jira_issue_history: (a) => `Reading the history of ${a.key ?? 'Jira issues'}`,
       jira_list_projects: () => 'Listing the Jira projects',
       confluence_search: () => 'Searching Confluence',
       confluence_get_page: () => 'Reading a Confluence page',
